@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Resume Tailor React (Gemini)",
+  "version": "1.0.0",
+  "description": "Generates a resume draft from selected text using Google Gemini (React Version).",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "Resume Tailor"
+  },
+  "host_permissions": ["*://generativelanguage.googleapis.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

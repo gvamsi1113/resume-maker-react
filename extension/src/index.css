@@ -1,0 +1,218 @@
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 15px;
+  min-width: 350px; /* Match original width */
+  background-color: #f9f9f9;
+  color: #333;
+}
+
+h3 {
+  color: #1a73e8; /* Google Blue */
+  margin-top: 0;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 5px;
+}
+
+p {
+  font-size: 0.9em;
+  margin-bottom: 15px;
+}
+
+button {
+  padding: 10px 15px;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9em;
+  margin-right: 5px; /* Spacing between buttons */
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+button.generate {
+  background-color: #1a73e8;
+  color: white;
+}
+button.generate:hover {
+  background-color: #185abc;
+}
+button.generate:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+button.action {
+  background-color: #e0e0e0;
+  color: #333;
+}
+button.action:hover {
+  background-color: #d5d5d5;
+}
+
+.status {
+  margin-top: 15px;
+  font-style: italic;
+  color: #555;
+  min-height: 1.2em;
+  font-size: 0.9em;
+  border-top: 1px solid #eee;
+  padding-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status.info {
+  color: #333;
+  font-style: normal;
+}
+
+.status.error {
+  color: red;
+  font-style: normal;
+  font-weight: bold;
+}
+
+.text-preview {
+  margin-top: 10px;
+  font-size: 0.85em;
+  background-color: #e8f0fe; /* Lighter blue background */
+  padding: 8px;
+  border-radius: 4px;
+  max-height: 100px;
+  overflow-y: auto;
+  border: 1px solid #d1e0ff;
+  line-height: 1.4;
+}
+
+.result-container {
+  margin-top: 15px;
+  max-height: 350px; /* Allow more height for structured data */
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  padding: 15px;
+  background-color: #fff;
+  line-height: 1.5;
+}
+
+.placeholder {
+  color: #888;
+  font-style: italic;
+}
+
+.resume-section {
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #eee; /* Lighter separator */
+}
+
+.resume-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.resume-section h4 {
+  color: #1a73e8; /* Google Blue */
+  margin-bottom: 10px;
+  margin-top: 0;
+  font-size: 1.1em;
+}
+
+.resume-section h5 {
+  margin-bottom: 4px;
+  margin-top: 8px;
+  font-size: 1em;
+  color: #333;
+}
+
+.resume-section p,
+.resume-section li {
+  font-size: 0.9em;
+  margin-bottom: 4px; /* Smaller vertical spacing */
+  color: #555;
+}
+
+.resume-section ul {
+  padding-left: 20px;
+  margin-top: 5px;
+  list-style: disc;
+}
+
+.resume-section .item {
+  margin-bottom: 15px;
+}
+
+.resume-section .label,
+.resume-section .subtle {
+  font-weight: normal;
+  font-size: 0.9em;
+  color: #666;
+}
+
+.resume-section .dates {
+  font-size: 0.85em;
+  color: #888;
+  font-style: italic;
+}
+
+.resume-section .story {
+  font-size: 0.88em;
+  font-style: italic;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  color: #666;
+}
+
+.resume-section a {
+  color: #1a73e8;
+  text-decoration: none;
+}
+
+.resume-section a:hover {
+  text-decoration: underline;
+}
+
+.button-container {
+  margin-top: 15px;
+}
+
+.spinner {
+  border: 3px solid #f3f3f3; /* Light grey */
+  border-top: 3px solid #1a73e8; /* Blue */
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  animation: spin 1s linear infinite;
+  display: inline-block; /* Keep it inline with text */
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.popup-container {
+  padding: 15px;
+  min-width: 400px; /* Slightly wider to accommodate resume structure */
+  max-width: 600px;
+}
