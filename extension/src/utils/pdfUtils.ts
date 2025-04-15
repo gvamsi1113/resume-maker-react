@@ -336,8 +336,15 @@ function addPdfEducationItem(doc: jsPDF, item: ResumeEducationItem) {
   const mainMaxWidth = PDF_CONTENT_WIDTH * 0.7;
   const detailsMaxWidth = PDF_CONTENT_WIDTH * 0.28;
 
-  // Combine study type and area for the main title
-  const titleText = `${item.studyType} in ${item.area}`;
+  // Function to convert to Sentence Case (simple version)
+  const toSentenceCase = (str: string): string => {
+    if (!str) return "";
+    const lower = str.toLowerCase();
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+  };
+
+  // Combine study type (in sentence case) and area for the main title
+  const titleText = `${toSentenceCase(item.studyType)} in ${item.area}`;
   const detailsText = `${item.startDate} - ${item.endDate || "Present"}${
     item.gpa ? ` | GPA: ${item.gpa}` : ""
   }`;
@@ -381,7 +388,7 @@ function addPdfEducationItem(doc: jsPDF, item: ResumeEducationItem) {
   // Add Degree (Title)
   const { newY: titleEndY } = addText(
     doc,
-    titleText,
+    titleText, // Already sentence-cased
     PDF_MARGIN_LEFT,
     itemStartY,
     {
@@ -438,13 +445,14 @@ function addPdfProjectItem(doc: jsPDF, item: ResumeProjectItem) {
   let detailsEndY = startY; // For potential URL on right
   const titleFontSize = 11;
   const bodyFontSize = 10;
-  const mainMaxWidth = PDF_CONTENT_WIDTH * 0.7; // Adjust if URL is present
+  const mainMaxWidth = PDF_CONTENT_WIDTH * 0.7; // Consistent 70% width for main content
   const detailsMaxWidth = PDF_CONTENT_WIDTH * 0.28; // For URL
 
   // --- Estimate Height ---
   let estimatedHeight = 0;
+  // Use mainMaxWidth for title estimation now
   estimatedHeight +=
-    doc.splitTextToSize(item.name, PDF_CONTENT_WIDTH).length *
+    doc.splitTextToSize(item.name, mainMaxWidth).length *
       titleFontSize *
       0.352778 *
       PDF_LINE_HEIGHT_FACTOR +
@@ -459,18 +467,17 @@ function addPdfProjectItem(doc: jsPDF, item: ResumeProjectItem) {
   const keywordsText = `Tech: ${item.keywords?.join(", ")}`;
   if (item.keywords && item.keywords.length > 0)
     estimatedHeight +=
-      doc.splitTextToSize(keywordsText, PDF_CONTENT_WIDTH).length *
+      doc.splitTextToSize(keywordsText, PDF_CONTENT_WIDTH - 4).length * // Indented width for keywords
       bodyFontSize *
       0.352778 *
       PDF_LINE_HEIGHT_FACTOR *
-      0.8; // Keywords might be smaller/italic
-  let detailsHeight = 0;
-  if (item.url)
-    detailsHeight =
-      doc.splitTextToSize(item.url, detailsMaxWidth).length *
+      0.8; // Keywords might be smaller/italic - REVISIT: Keep normal size?
+  const detailsHeight = item.url
+    ? doc.splitTextToSize(item.url, detailsMaxWidth).length *
       bodyFontSize *
       0.352778 *
-      PDF_LINE_HEIGHT_FACTOR;
+      PDF_LINE_HEIGHT_FACTOR
+    : 0;
   estimatedHeight =
     Math.max(estimatedHeight, detailsHeight) + PDF_POST_ITEM_SPACE;
   // --- End Height Estimation ---
@@ -487,8 +494,7 @@ function addPdfProjectItem(doc: jsPDF, item: ResumeProjectItem) {
 
   const itemStartY = currentY;
 
-  // Add Project Name (Title) - Takes full width if no URL? Or keep consistent?
-  const titleMaxWidth = item.url ? mainMaxWidth : PDF_CONTENT_WIDTH;
+  // Add Project Name (Title) - Use consistent mainMaxWidth (70%)
   const { newY: titleEndY } = addText(
     doc,
     item.name,
@@ -497,7 +503,7 @@ function addPdfProjectItem(doc: jsPDF, item: ResumeProjectItem) {
     {
       fontSize: titleFontSize,
       fontStyle: "bold",
-      maxWidth: titleMaxWidth,
+      maxWidth: mainMaxWidth, // Use 70% width consistently
     }
   );
   mainContentEndY = titleEndY;
@@ -515,12 +521,10 @@ function addPdfProjectItem(doc: jsPDF, item: ResumeProjectItem) {
         fontStyle: "normal",
         align: "right",
         maxWidth: detailsMaxWidth,
-        textColor: [0, 0, 255], // Blue color for link
+        textColor: [0, 0, 255], // Keep blue for link
       }
     );
     detailsEndY = newY;
-    // Make URL clickable (optional)
-    // doc.link(PDF_MARGIN_LEFT + PDF_CONTENT_WIDTH - detailsMaxWidth, itemStartY, detailsMaxWidth, (newY - itemStartY), { url: item.url });
   }
 
   // Ensure Y is below Title/URL before adding description
@@ -537,7 +541,7 @@ function addPdfProjectItem(doc: jsPDF, item: ResumeProjectItem) {
     currentY = newY + PDF_ITEM_SPACE;
   }
 
-  // Add Keywords (like a bullet point, maybe italic?)
+  // Add Keywords (like a bullet point, normal style)
   if (item.keywords && item.keywords.length > 0) {
     const bulletStartY = currentY;
     const bulletIndent = 4;
@@ -551,18 +555,18 @@ function addPdfProjectItem(doc: jsPDF, item: ResumeProjectItem) {
         bodyFontSize * 0.352778 * 0.3,
       { fontSize: bodyFontSize }
     );
-    const result = addText(
+    const { newY } = addText(
       doc,
-      `Tech: ${item.keywords.join(", ")}`,
+      keywordsText,
       PDF_MARGIN_LEFT + bulletIndent,
       bulletStartY,
       {
         fontSize: bodyFontSize,
-        fontStyle: "italic",
+        fontStyle: "normal", // Changed from italic to normal
         maxWidth: bulletMaxWidth,
       }
     );
-    currentY = result.newY; // No extra space after keywords?
+    currentY = newY; // No extra space after keywords?
   }
 }
 

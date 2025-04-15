@@ -5,7 +5,8 @@
   "description": "Generates a resume draft from selected text using Google Gemini (React Version).",
   "permissions": ["activeTab", "scripting", "storage"],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "action": {
     "default_popup": "index.html",
