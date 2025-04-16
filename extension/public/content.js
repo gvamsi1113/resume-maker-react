@@ -1,8 +1,13 @@
-// content.js - Runs in the context of the web page
+// content.js - Injected into web pages to interact with the DOM.
 
+/**
+ * Listens for messages from the background script.
+ * Primarily handles the "getSelection" action to retrieve user-selected text.
+ */
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "getSelection") {
-    const selectedText = window.getSelection().toString().trim(); // Trim whitespace
+    // Get the currently selected text on the page and trim whitespace.
+    const selectedText = window.getSelection().toString().trim();
     if (selectedText) {
       // Create a truncated version for logging (first 100 chars)
       const truncatedText =
@@ -10,25 +15,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           ? selectedText.substring(0, 100) + "..."
           : selectedText;
 
-      console.log("Content Script: DETECTED TEXT SELECTION:", truncatedText);
+      console.log("Content Script: Detected text selection:", truncatedText);
       sendResponse({
         status: "success",
         text: selectedText,
         textPreview: truncatedText, // Send a preview for display
       });
     } else {
-      console.log("Content Script: NO TEXT SELECTED - Selection is empty.");
-      // Send success but with empty text, background can handle it
+      console.log("Content Script: No text selected.");
+      // Send a success response even if no text is selected, indicating the check was performed.
       sendResponse({
         status: "success",
         text: "",
-        textPreview: "[NO TEXT SELECTED]",
+        textPreview: "[No text selected]",
       });
     }
   }
-  // Keep the message channel open for the asynchronous response
+  // Return true to indicate that the response will be sent asynchronously.
   return true;
 });
 
-// Add a visible log to confirm loading for debugging
-console.log("Resume Tailor Content Script Loaded and Ready to Detect Text.");
+// Log to the console to confirm the content script has loaded successfully.
+console.log("Resume Tailor Content Script Loaded.");

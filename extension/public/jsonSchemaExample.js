@@ -1,3 +1,8 @@
+/**
+ * Provides a string representation of the expected JSON schema for the resume data.
+ * Used primarily for reference or potentially for validation instructions in prompts.
+ * @type {string}
+ */
 export const jsonSchemaExample = `{
     "basics": {
         "name": "",

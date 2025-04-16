@@ -1,15 +1,30 @@
+/**
+ * Generates the complete prompt string for the Gemini API call.
+ *
+ * This function takes various base resume sections (as JSON objects) and the job description text,
+ * stringifies the JSON parts, and embeds them within a detailed instruction template.
+ * The template guides the AI model to tailor the resume sections (summary, work, skills, projects)
+ * based on the job description while adhering to specific formatting and content rules.
+ *
+ * @param {object} baseResumeWork - The base work experience data (JSON object).
+ * @param {object} baseResumeSkills - The base skills data (JSON object).
+ * @param {object} baseResumeProjects - The base projects data (JSON object).
+ * @param {object} baseResumeSummary - The base summary data (JSON object).
+ * @param {string} jobDescription - The raw text of the target job description.
+ * @returns {string} The fully constructed prompt string ready for the Gemini API.
+ */
 export function generatePrompt(
-  baseJsonWork,
-  baseJsonSkills,
-  baseJsonProjects,
-  baseJsonSummary,
+  baseResumeWork,
+  baseResumeSkills,
+  baseResumeProjects,
+  baseResumeSummary,
   jobDescription
 ) {
   // Stringify the objects needed for the prompt
-  const baseWorkString = JSON.stringify(baseJsonWork, null, 2);
-  const baseSkillsString = JSON.stringify(baseJsonSkills, null, 2);
-  const baseProjectsString = JSON.stringify(baseJsonProjects, null, 2);
-  const baseSummaryString = JSON.stringify(baseJsonSummary, null, 2); // Stringify summary object
+  const baseWorkString = JSON.stringify(baseResumeWork, null, 2);
+  const baseSkillsString = JSON.stringify(baseResumeSkills, null, 2);
+  const baseProjectsString = JSON.stringify(baseResumeProjects, null, 2);
+  const baseSummaryString = JSON.stringify(baseResumeSummary, null, 2);
 
   return `IMPERATIVE: YOUR SOLE FUNCTION IS TO ACT AS A JSON API ENDPOINT. YOU MUST OUTPUT A SINGLE, VALID JSON OBJECT AND NOTHING ELSE. ABSOLUTELY NO MARKDOWN, EXPLANATIONS, OR ANY TEXT BEFORE THE STARTING '{' OR AFTER THE ENDING '}' IS PERMITTED.
 
@@ -70,7 +85,7 @@ Parse the provided \`--- BASE RESUME JSON CHUNKS --- \` (Work, Skills, Projects,
 
 9.  **Final Output Constraint (ABSOLUTE):** The final response MUST begin *exactly* with \`{\` and end *exactly* with \`}\`. No other characters, formatting, markdown, or explanations are allowed.
 
-**FINAL CRITICAL CHECK:** Before generating the JSON, double-check EVERY bullet point in ALL \`work[].highlights\` arrays. EACH bullet MUST contain EXACTLY 185-210 characters including spaces. NO OTHER LENGTH IS PERMITTED. THIS IS A MANDATORY REQUIREMENT. DOUBLE CHECK AND REMOVE IF YOU HAVE ADDED ANY COMMENTS OR ANYTHING ELSE. IT MUST BE DIRECTLY SENDABLE TO THE COMPANY. DEAL IN ABSOLUTE WORDS. NO POTENTIAL, NO AMBIGUITY, NO VAGUE STUFF. NO EXPLANATORY TEXT. NO BRACKETS like (exposure, expert, etc). 
+**FINAL CRITICAL CHECK:** Before generating the JSON, double-check EVERY bullet point in ALL \`work[].highlights\` arrays. EACH bullet MUST contain EXACTLY 185-210 characters including spaces. NO OTHER LENGTH IS PERMITTED. THIS IS A MANDATORY REQUIREMENT. DO NOT ADD CHARACTER COUNT IN THE BULLET POINTS. DOUBLE CHECK AND REMOVE IF YOU HAVE ADDED ANY COMMENTS OR ANYTHING ELSE. IT MUST BE DIRECTLY SENDABLE TO THE COMPANY. DEAL IN ABSOLUTE WORDS. NO POTENTIAL, NO AMBIGUITY, NO VAGUE STUFF. NO EXPLANATORY TEXT. NO BRACKETS like (exposure, expert, etc). 
 
 
 --- BASE RESUME JSON CHUNKS ---
@@ -98,5 +113,5 @@ ${baseProjectsString}
 --- JOB DESCRIPTION ---
 ${jobDescription}
 
---- TAILORED RESUME JSON OUTPUT (summary, work, skills, projects ONLY) ---`; // No extra text after this marker
+--- TAILORED RESUME JSON OUTPUT (summary, work, skills, projects ONLY) ---`;
 }

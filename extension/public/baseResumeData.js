@@ -1,5 +1,11 @@
 // Holds different sections of the base resume structured as JavaScript objects conforming to the JSON schema.
-export const BASE_JSON_BASICS = {
+
+/**
+ * Base resume data for the 'basics' section.
+ * Includes name, contact information, location, and profiles.
+ * @type {object}
+ */
+export const BASE_RESUME_BASICS = {
   basics: {
     name: "YOUR NAME",
     label: "Frontend Engineer",
@@ -22,11 +28,21 @@ export const BASE_JSON_BASICS = {
   },
 };
 
-export const BASE_JSON_SUMMARY = {
+/**
+ * Base resume data for the 'summary' section.
+ * Contains a professional summary paragraph.
+ * @type {object}
+ */
+export const BASE_RESUME_SUMMARY = {
   summary: `Results-driven Frontend Engineer with 3+ years of non-internship experience specializing in building intuitive, high-performance web applications using React, Next.js, and TypeScript. Proven ability to enhance user experiences, optimize complex workflows, and ensure application stability and quality. Leverages a unique architectural background to inform user-centric design and technical solutions. Committed to operational excellence, collaborative problem-solving, and delivering measurable outcomes within fast-paced Agile environments.`,
 };
 
-export const BASE_JSON_WORK = {
+/**
+ * Base resume data for the 'work' section.
+ * Contains an array of work experience items.
+ * @type {object}
+ */
+export const BASE_RESUME_WORK = {
   work: [
     {
       name: "Conduent Inc.",
@@ -78,7 +94,12 @@ export const BASE_JSON_WORK = {
   ],
 };
 
-export const BASE_JSON_EDUCATION = {
+/**
+ * Base resume data for the 'education' section.
+ * Contains an array of educational qualifications.
+ * @type {object}
+ */
+export const BASE_RESUME_EDUCATION = {
   education: [
     {
       institution: "Arizona State University",
@@ -99,7 +120,12 @@ export const BASE_JSON_EDUCATION = {
   ],
 };
 
-export const BASE_JSON_PROJECTS = {
+/**
+ * Base resume data for the 'projects' section.
+ * Contains an array of personal or professional projects.
+ * @type {object}
+ */
+export const BASE_RESUME_PROJECTS = {
   projects: [
     {
       name: "Serverless E-Commerce Platform",
@@ -125,7 +151,12 @@ export const BASE_JSON_PROJECTS = {
   ],
 };
 
-export const BASE_JSON_SKILLS = {
+/**
+ * Base resume data for the 'skills' section.
+ * Contains an array of skill categories with associated keywords.
+ * @type {object}
+ */
+export const BASE_RESUME_SKILLS = {
   skills: [
     {
       name: "Frontend",
@@ -199,7 +230,12 @@ export const BASE_JSON_SKILLS = {
   ],
 };
 
-export const BASE_JSON_OTHER = {
+/**
+ * Base resume data for optional sections like 'certificates' and 'languages'.
+ * Contains empty arrays by default.
+ * @type {object}
+ */
+export const BASE_RESUME_OTHER = {
   certificates: [],
   languages: [],
 };
