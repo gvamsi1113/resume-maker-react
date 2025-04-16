@@ -21,7 +21,6 @@ export interface ResumeBasics {
   url?: string; // Portfolio or primary URL
   location: ResumeLocation;
   profiles: ResumeProfile[];
-  summary: string;
 }
 
 export interface ResumeWorkItem {
@@ -74,6 +73,7 @@ export interface ResumeLanguageItem {
 // --- Main Resume Data Structure ---
 export interface ResumeData {
   basics: ResumeBasics;
+  summary: string;
   work: ResumeWorkItem[];
   education: ResumeEducationItem[];
   skills: ResumeSkillItem[];

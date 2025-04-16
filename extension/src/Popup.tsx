@@ -221,8 +221,13 @@ const Popup: React.FC = () => {
           </a>
         </p>
       ))}
-      <h5>Summary</h5>
-      <p>{basics.summary}</p>
+    </div>
+  );
+
+  const renderSummary = (summary: string) => (
+    <div className="resume-section">
+      <h3>SUMMARY</h3>
+      <p>{summary}</p>
     </div>
   );
 
@@ -368,6 +373,7 @@ const Popup: React.FC = () => {
         {resumeData ? (
           <>
             {renderBasics(resumeData.basics)}
+            {renderSummary(resumeData.summary)}
             {renderWork(resumeData.work)}
             {renderEducation(resumeData.education)}
             {renderSkills(resumeData.skills)}

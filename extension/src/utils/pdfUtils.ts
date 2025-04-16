@@ -648,9 +648,9 @@ export function generatePdf(resumeData: ResumeData): void {
   addPdfHeader(doc, resumeData.basics);
 
   // 2. Summary
-  if (resumeData.basics.summary) {
+  if (resumeData.summary) {
     addPdfSection(doc, "SUMMARY");
-    addText(doc, resumeData.basics.summary, PDF_MARGIN_LEFT, currentY, {
+    addText(doc, resumeData.summary, PDF_MARGIN_LEFT, currentY, {
       fontSize: 10,
       fontStyle: "normal",
     });
