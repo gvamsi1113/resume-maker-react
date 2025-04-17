@@ -1,4 +1,4 @@
-﻿version: '3.8'
+﻿version: "3.8"
 
 services:
   backend:
@@ -16,18 +16,19 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgres://YOUR_DB_USER:YOUR_DB_PASSWORD@db:5432/resume_gen_db # MUST MATCH .env and db service!
+      DATABASE_URL: postgres://gvamsi:1113@db:5432/resume_gen_db
 
   website:
     build:
       context: ./website
       dockerfile: Dockerfile
+      target: build-stage
     volumes:
       - ./website:/app
       - /app/node_modules
     ports:
       - "5173:5173"
-    command: npm run dev -- --host 0.0.0.0 --port 5173
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
     depends_on:
       - backend
     environment:
@@ -39,12 +40,12 @@ services:
       - postgres_data:/var/lib/postgresql/data/
     environment:
       POSTGRES_DB: resume_gen_db
-      POSTGRES_USER: YOUR_DB_USER # MUST EDIT and match values used elsewhere
-      POSTGRES_PASSWORD: YOUR_DB_PASSWORD # MUST EDIT and match values used elsewhere
+      POSTGRES_USER: gvamsi # MUST EDIT and match values used elsewhere
+      POSTGRES_PASSWORD: 1113 # MUST EDIT and match values used elsewhere
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U YOUR_DB_USER -d resume_gen_db"] # MUST EDIT USER
+      test: ["CMD-SHELL", "pg_isready -U gvamsi -d resume_gen_db"] # MUST EDIT USER
       interval: 5s
       timeout: 5s
       retries: 5
