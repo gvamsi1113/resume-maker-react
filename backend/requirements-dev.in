@@ -1,1 +1,4 @@
 ﻿-r requirements.in
+flake8>=7,<8 # Linter: Checks code for style/errors
+black>=24,<25 # Formatter: Automatically formats code consistently
+ipython>=8,<9 # Enhanced interactive Python shell

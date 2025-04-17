@@ -1,13 +1,13 @@
-﻿version: "3.8"
-
 services:
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    # Command assumes manage.py is found relative to WORKDIR in Dockerfile
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - ./backend:/app
+      # Mount entire project root
+      - .:/workspaces/resume-maker-react
     ports:
       - "8000:8000"
     env_file:
@@ -24,15 +24,20 @@ services:
       dockerfile: Dockerfile
       target: build-stage
     volumes:
-      - ./website:/app
-      - /app/node_modules
+      # Mount entire project root
+      - .:/workspaces/resume-maker-react
+      # Keep node_modules isolated RELATIVE TO NEW MOUNT
+      - /workspaces/resume-maker-react/website/node_modules
+      # --- END CHANGE ---
     ports:
       - "5173:5173"
+    working_dir: /workspaces/resume-maker-react/website
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
     depends_on:
       - backend
     environment:
       VITE_API_BASE_URL: http://backend:8000/api
+      # CHOKIDAR_USEPOLLING=true
 
   db:
     image: postgres:15-alpine
@@ -40,12 +45,12 @@ services:
       - postgres_data:/var/lib/postgresql/data/
     environment:
       POSTGRES_DB: resume_gen_db
-      POSTGRES_USER: gvamsi # MUST EDIT and match values used elsewhere
-      POSTGRES_PASSWORD: 1113 # MUST EDIT and match values used elsewhere
+      POSTGRES_USER: gvamsi
+      POSTGRES_PASSWORD: 1113
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U gvamsi -d resume_gen_db"] # MUST EDIT USER
+      test: ["CMD-SHELL", "pg_isready -U gvamsi -d resume_gen_db"]
       interval: 5s
       timeout: 5s
       retries: 5
