@@ -1,0 +1,16 @@
+﻿# General & OS Files
+.DS_Store
+Thumbs.db
+*.log
+*.sublime-*
+
+# IDE Configuration
+.vscode/
+.idea/
+
+# Environment Variables (Root Level - VERY IMPORTANT)
+.env*
+!*.env.example
+
+# Docker
+docker-sync.yml

@@ -1,0 +1,33 @@
+﻿# Python Virtual Environment
+venv/
+# Python Cache & Bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+# Distribution / Installation Artifacts
+*.egg-info/
+*.egg
+build/
+dist/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+# Database Files
+*.sqlite3
+*.sqlite3-journal
+# Django Static/Media Files
+# static_root/
+# media_root/
+# Test & Coverage Reports
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+nosetests.xml
+coverage.xml
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints
+# Linters cache
+.mypy_cache/
+.ruff_cache/
