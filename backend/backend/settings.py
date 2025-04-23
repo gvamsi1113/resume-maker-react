@@ -8,8 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 SECRET_KEY = os.environ.get(
-    "SECRET_KEY",
-    "django-insecure-!!!REPLACE-ME-SECRET-KEY!!!"  # MUST REPLACE IN .env
+    "SECRET_KEY", "django-insecure-!!!REPLACE-ME-SECRET-KEY!!!"  # MUST REPLACE IN .env
 )
 DEBUG = os.environ.get("DEBUG", "False") == "True"
 ALLOWED_HOSTS = os.environ.get(
@@ -27,7 +26,9 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "authentication",
-    "profiles",
+    "bio",
+    "resumes",
+    "generation",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -61,9 +62,7 @@ WSGI_APPLICATION = "backend.wsgi.application"
 DEFAULT_DB_URL = f'sqlite:///{BASE_DIR / "db.sqlite3"}'
 DATABASE_URL = os.environ.get("DATABASE_URL", DEFAULT_DB_URL)
 
-DATABASES = {
-    "default": dj_database_url.config(default=DATABASE_URL, conn_max_age=600)
-}
+DATABASES = {"default": dj_database_url.config(default=DATABASE_URL, conn_max_age=600)}
 
 # Password validation
 # https://docs.djangoproject.com/en/stable/ref/settings/#auth-password-validators
@@ -75,19 +74,13 @@ AUTH_PASSWORD_VALIDATORS = [
         ),
     },
     {
-        "NAME": (
-            "django.contrib.auth.password_validation.MinimumLengthValidator"
-        ),
+        "NAME": ("django.contrib.auth.password_validation.MinimumLengthValidator"),
     },
     {
-        "NAME": (
-            "django.contrib.auth.password_validation.CommonPasswordValidator"
-        ),
+        "NAME": ("django.contrib.auth.password_validation.CommonPasswordValidator"),
     },
     {
-        "NAME": (
-            "django.contrib.auth.password_validation.NumericPasswordValidator"
-        ),
+        "NAME": ("django.contrib.auth.password_validation.NumericPasswordValidator"),
     },
 ]
 
@@ -139,12 +132,9 @@ SIMPLE_JWT = {
     "USER_ID_FIELD": "id",  # Field on the User model to use for ID
     "USER_ID_CLAIM": "user_id",  # Claim name in the JWT payload for user ID
     "USER_AUTHENTICATION_RULE": (
-        "rest_framework_simplejwt.authentication"
-        ".default_user_authentication_rule"
+        "rest_framework_simplejwt.authentication" ".default_user_authentication_rule"
     ),
-    "AUTH_TOKEN_CLASSES": (
-        "rest_framework_simplejwt.tokens.AccessToken",
-    ),
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
     "TOKEN_TYPE_CLAIM": "token_type",
     "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
     "JTI_CLAIM": "jti",  # Unique identifier for the token
