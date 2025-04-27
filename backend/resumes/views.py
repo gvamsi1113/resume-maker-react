@@ -13,7 +13,7 @@ from .serializers import (
 from bio.models import Bio  # Import Bio for create_base action
 
 
-class ResumeViewSet(viewsets.ModelViewSet):  # Change to ModelViewSet to allow PUT/PATCH
+class ResumeViewSet(viewsets.ModelViewSet):
     """
     API endpoint for listing, retrieving, updating, and deleting user Resumes.
     Creation of non-base resumes happens via /api/generate/.
@@ -29,8 +29,8 @@ class ResumeViewSet(viewsets.ModelViewSet):  # Change to ModelViewSet to allow P
         if self.action == "list":
             return ResumeListSerializer
         # For create_base action, maybe use BaseResumeCreateSerializer explicitly
-        # if self.action == 'create_base':
-        #    return BaseResumeCreateSerializer # Or handle in action directly
+        if self.action == "create_base":
+            return BaseResumeCreateSerializer  # Or handle in action directly
         return ResumeSerializer  # Default for retrieve, update, partial_update
 
     def get_queryset(self):

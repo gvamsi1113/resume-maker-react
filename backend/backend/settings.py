@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "bio",
     "resumes",
     "generation",
+    "onboarding",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

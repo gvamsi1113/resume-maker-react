@@ -87,6 +87,10 @@ def generate_resume_content_for_jd(user: User, jd_text: str) -> dict | str:
 
         # --- Step 4: Build the Prompt ---
         prompt = build_generation_prompt(ai_input_string, jd_text)
+        # Print the AI prompt for debugging
+        print("\n--- AI Generation Prompt ---\n")
+        print(prompt)
+        print("\n--- End AI Generation Prompt ---\n")
 
         # --- Step 5: Call AI Model ---
         model_name = "gemini-1.5-flash"  # Verify model

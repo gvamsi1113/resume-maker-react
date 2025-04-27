@@ -63,11 +63,30 @@ def format_base_data_for_ai_prompt(bio: Bio, base_resume: Resume) -> str:
 
     # Base Skills (From Base Resume Record)
     data_str += "## Base Skills:\n"
-    if base_resume.skills:
-        for category, skills_list in base_resume.skills.items():  # Iterate through dict
-            data_str += f"- **{category}:** {', '.join(skills_list)}\n"
+    if base_resume.skills and isinstance(base_resume.skills, list):  # Check it's a list
+        for skill_entry in base_resume.skills:
+            # Ensure skill_entry is a dictionary with expected keys
+            if isinstance(skill_entry, dict):
+                category = skill_entry.get("category", "Uncategorized")
+                # Skills string might be comma-separated already
+                skills_str = skill_entry.get("skills", "N/A")
+                data_str += f"- **{category}:** {skills_str}\n"
+            else:
+                # Log if format is unexpected (e.g., just a string in the list)
+                print(
+                    f"Warning: Unexpected item format in base_resume.skills: {skill_entry}"
+                )
+                data_str += f"- {str(skill_entry)}\n"  # Print the item directly
     else:
-        data_str += "N/A\n\n"
+        # Handle cases where skills is empty list or not a list
+        if not base_resume.skills:
+            data_str += "N/A\n"
+        else:
+            print(
+                f"Warning: base_resume.skills is not a list: {type(base_resume.skills)}"
+            )
+            data_str += "Skills data format error\n"
+    data_str += "\n"
 
     # Languages & Certificates (From Bio - still relevant context)
     if bio.base_languages_json:
