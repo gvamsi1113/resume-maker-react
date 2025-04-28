@@ -22,22 +22,21 @@ services:
     build:
       context: ./website
       dockerfile: Dockerfile
-      target: build-stage
+      # target: build-stage
     volumes:
-      # Mount entire project root
       - .:/workspaces/resume-maker-react
-      # Keep node_modules isolated RELATIVE TO NEW MOUNT
       - /workspaces/resume-maker-react/website/node_modules
-      # --- END CHANGE ---
     ports:
-      - "5173:5173"
+      - "3000:3000"
     working_dir: /workspaces/resume-maker-react/website
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    command: sh -c "npm install && npm run dev -- --hostname 0.0.0.0 --port 3000"
     depends_on:
       - backend
     environment:
-      VITE_API_BASE_URL: http://backend:8000/api
-      # CHOKIDAR_USEPOLLING=true
+      WATCHPACK_POLLING: true
+      NEXT_PUBLIC_API_BASE_URL: http://backend:8000/api
+      HOST: 0.0.0.0
+      CHOKIDAR_USEPOLLING: true
 
   db:
     image: postgres:15-alpine
