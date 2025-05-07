@@ -1,0 +1,30 @@
+/* Custom Glare Effect for Cards */
+.glareEffect {
+  position: relative; /* Ensure positioning context for pseudo-element */
+  overflow: hidden; /* Clip the pseudo-element */
+}
+
+.glareEffect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%; /* Start off-screen left */
+  width: 50%; /* Width of the glare */
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.15) 50%, /* Subtle white glare */
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: skewX(-25deg); /* Angle of the glare */
+  opacity: 0;
+  transition: left 600ms ease-out, opacity 400ms ease-out;
+  z-index: 1; /* Ensure glare is above background but potentially below content */
+  pointer-events: none; /* Make sure it doesn't interfere with clicks */
+}
+
+.glareEffect:hover::before {
+  left: 150%; /* Move off-screen right */
+  opacity: 0.1; /* Make glare subtly visible on hover - Adjust for desired intensity */
+} 
