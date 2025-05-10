@@ -1,13 +1,37 @@
 import { useState, useRef } from 'react';
 import { FileUploadState } from '../types';
+import mammoth from 'mammoth';
+import { useRouter } from 'next/navigation';
 
 const API_URL = 'http://localhost:8000/api/onboard/process-resume/';
+
+interface TokenState {
+    token: string | null;
+    captchaChallenge: string | null;
+    captchaAnswer: string | null;
+    error: string | null;
+    loading: boolean;
+}
+
+interface ResumeResponse {
+    id: string;
+    analysis: any;
+    pdfUrl: string;
+}
+
+type GetTokenFn = () => Promise<void>;
 
 /**
  * Custom hook for handling file upload state and logic
  * @returns {Object} File upload state and handlers
  */
-export function useFileUpload(onUploadComplete?: () => void) {
+export function useFileUpload(
+    tokenState: TokenState,
+    getToken: GetTokenFn,
+    onUploadComplete?: () => void
+) {
+    console.log('useFileUpload hook initialized');
+    const router = useRouter();
     const [fileState, setFileState] = useState<FileUploadState>({
         file: null,
         uploadProgress: 0,
@@ -15,6 +39,7 @@ export function useFileUpload(onUploadComplete?: () => void) {
         uploading: false,
         error: null
     });
+    const [responseData, setResponseData] = useState<ResumeResponse | null>(null);
     const uploadInterval = useRef<NodeJS.Timeout | null>(null);
 
     const handleFileSelect = (selectedFile: File | null) => {
@@ -23,10 +48,9 @@ export function useFileUpload(onUploadComplete?: () => void) {
                 ...prev,
                 file: selectedFile,
                 uploadProgress: 0,
-                uploading: true,
+                uploading: false,
                 error: null
             }));
-            startUpload(selectedFile);
         }
     };
 
@@ -42,6 +66,7 @@ export function useFileUpload(onUploadComplete?: () => void) {
             uploading: false,
             error: null
         });
+        setResponseData(null);
         if (uploadInterval.current) clearInterval(uploadInterval.current);
         const fileInput = document.getElementById('file-upload') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
@@ -78,29 +103,66 @@ export function useFileUpload(onUploadComplete?: () => void) {
     };
 
     const startUpload = async (file: File) => {
+        console.log('startUpload called with file:', file, 'and tokenState:', tokenState);
+
+        if (!tokenState.token) {
+            console.error('startUpload called without a token. This should be orchestrated by UploadPage.');
+            setFileState(prev => ({
+                ...prev,
+                uploading: false,
+                error: 'Upload error: Missing authorization. Please try again.'
+            }));
+            return;
+        }
+
         try {
-            setFileState(prev => ({ ...prev, uploading: true, uploadProgress: 0 }));
+            setFileState(prev => ({
+                ...prev,
+                uploading: true,
+                uploadProgress: 0,
+                error: null
+            }));
             
             const formData = new FormData();
-            formData.append('resume_file', file);
+            let fileToUpload = file;
 
-            // TODO: Replace with actual auth token
-            const authToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ2ODY3MDYwLCJpYXQiOjE3NDY4NjYxNjAsImp0aSI6ImUzMzU5Zjg0OWNlYTQxYzM4MjJkNDFhOTQ0N2ZlMjY0IiwidXNlcl9pZCI6MX0.pzuyKwMyTYcYV0fRo7iYqESEvGfCElXEn5qorJoiTL4';
+            // Only use the parser for DOCX files
+            if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                const arrayBuffer = await file.arrayBuffer();
+                const { value: text } = await mammoth.extractRawText({ arrayBuffer });
+                const textBlob = new Blob([text], { type: 'text/plain' });
+                fileToUpload = new File([textBlob], file.name.replace(/\.docx$/, '.txt'), { type: 'text/plain' });
+            }
+
+            formData.append('resume_file', fileToUpload);
+            
+            // Add CAPTCHA if we have it
+            if (tokenState.captchaChallenge && tokenState.captchaAnswer) {
+                formData.append('captcha_challenge', tokenState.captchaChallenge);
+                formData.append('captcha_answer', tokenState.captchaAnswer);
+            }
             
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${authToken}`
+                    'X-Demo-Token': tokenState.token
                 },
                 body: formData
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
+                // If token is invalid, let UploadPage handle getting a new one and retrying
+                if (response.status === 403 && errorData.error?.includes('token')) {
+                    console.error('Token error (403):', errorData, 'tokenState:', tokenState, 'file:', file);
+                    throw new Error('Please try uploading again with the new token');
+                }
+                console.error('Upload failed:', errorData, 'tokenState:', tokenState, 'file:', file);
                 throw new Error(errorData.error || 'Upload failed');
             }
 
             const data = await response.json();
+            setResponseData(data);
             setFileState(prev => ({ 
                 ...prev, 
                 uploadProgress: 100,
@@ -109,7 +171,11 @@ export function useFileUpload(onUploadComplete?: () => void) {
             
             if (onUploadComplete) onUploadComplete();
             
+            // Remove automatic navigation
+            // router.push(`/resume/${data.id}`);
+            
         } catch (error) {
+            console.error('startUpload error:', error, 'tokenState:', tokenState, 'file:', file);
             setFileState(prev => ({
                 ...prev,
                 uploading: false,
@@ -120,6 +186,7 @@ export function useFileUpload(onUploadComplete?: () => void) {
 
     return {
         fileState,
+        responseData,
         handleFileChange,
         handleCancel,
         handleDragEnter,

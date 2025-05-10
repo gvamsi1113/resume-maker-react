@@ -3,6 +3,7 @@ import dj_database_url
 from dotenv import load_dotenv
 from pathlib import Path
 from datetime import timedelta
+from corsheaders.defaults import default_headers
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_DIR, ".env"))
@@ -30,6 +31,7 @@ INSTALLED_APPS = [
     "resumes",
     "generation",
     "onboarding",
+    "corsheaders",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -39,6 +41,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
 ]
 ROOT_URLCONF = "backend.urls"
 TEMPLATES = [
@@ -145,3 +148,11 @@ SIMPLE_JWT = {
     # Only used if sliding tokens enabled
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 }
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # or whatever port your frontend runs on
+]
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "x-demo-token",
+]

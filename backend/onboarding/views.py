@@ -3,110 +3,98 @@ from rest_framework import views, permissions, status, parsers
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db import transaction
+from django.core.cache import cache
+from django.conf import settings
+import logging  # Import logging
+from datetime import datetime
 
 from .serializers import ResumeUploadSerializer
+from .services import parse_and_structure_resume_file
+from .security import SecurityManager
 
 # Import the new service function name
-from .services import parse_and_structure_resume_file
 from bio.models import Bio
 from resumes.models import Resume
 from bio.serializers import BioSerializer
 from resumes.serializers import ResumeSerializer  # Merging serializer for response
 
+logger = logging.getLogger(__name__)  # Get a logger
+
+
+class DemoTokenView(views.APIView):
+    """View to generate demo tokens for resume parsing."""
+
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        # Generate CAPTCHA first
+        captcha_challenge, _ = SecurityManager.generate_captcha()
+
+        # Generate and store token
+        token = SecurityManager.generate_token()
+        SecurityManager.store_token(token)
+
+        return Response(
+            {
+                "token": token,
+                "captcha_challenge": captcha_challenge,
+                "message": "Token generated successfully. Use this token in the X-Demo-Token header for resume uploads.",
+            },
+            status=status.HTTP_200_OK,
+        )
+
 
 class OnboardingResumeUploadView(views.APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = []
     parser_classes = [parsers.MultiPartParser, parsers.FormParser]
 
     @transaction.atomic
     def post(self, request, *args, **kwargs):
+        # Validate security measures
+        is_valid, error_message = SecurityManager.validate_request(request)
+        if not is_valid:
+            return Response({"error": error_message}, status=status.HTTP_403_FORBIDDEN)
+
+        logger.info(
+            f"Received request for resume upload from IP: {SecurityManager.get_client_ip(request)}"
+        )
+
+        if "resume_file" not in request.FILES:
+            logger.warning("'resume_file' not found in request.FILES")
+            return Response(
+                {"error": "No resume file provided"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
         upload_serializer = ResumeUploadSerializer(data=request.data)
         if not upload_serializer.is_valid():
+            logger.error(f"ResumeUploadSerializer errors: {upload_serializer.errors}")
             return Response(
                 upload_serializer.errors, status=status.HTTP_400_BAD_REQUEST
             )
 
-        uploaded_file = upload_serializer.validated_data["resume_file"]
-        user = request.user
-        print(f"Processing uploaded resume file for user: {user.username}")
+        validated_uploaded_file = upload_serializer.validated_data["resume_file"]
 
-        # 1. Parse with AI (using the new function that takes the file object)
-        print("Parsing resume file content with AI...")
-        # Call the new service function
-        structured_data = parse_and_structure_resume_file(uploaded_file)
+        # Parse with AI
+        logger.info("Parsing resume file content with AI...")
+        structured_data = parse_and_structure_resume_file(validated_uploaded_file)
+
         if structured_data is None:
+            logger.error("AI Parsing failed for the uploaded file.")
             return Response(
                 {"error": "Failed to parse resume content using AI."},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
-        print("AI Parsing successful.")
 
-        # 2. Update Bio and Create Base Resume
-        try:
-            bio = get_object_or_404(Bio, user=user)
+        logger.info("AI Parsing successful.")
 
-            # Update Bio from parsed data
-            bio.base_summary = structured_data.get("summary", bio.base_summary)
-            bio.base_education_json = structured_data.get(
-                "education", bio.base_education_json
-            )
-            bio.base_languages_json = structured_data.get(
-                "languages", bio.base_languages_json
-            )
-            bio.base_certificates_json = structured_data.get(
-                "certificates", bio.base_certificates_json
-            )
-            # TODO: Extract/update other Bio fields if parser supports it
-            # bio.headline = structured_data.get("headline", bio.headline)
-            # ... etc ...
-            bio.save()
-            print("Bio updated with parsed static data.")
-
-            # Create/Replace Base Resume
-            Resume.objects.filter(user=user, is_base_resume=True).delete()
-            print("Existing base resume deleted (if any). Creating new base resume...")
-
-            base_resume = Resume.objects.create(
-                user=user,
-                name="Base Resume (from Upload)",
-                is_base_resume=True,
-                # Populate directly from parsed AI data
-                summary=structured_data.get("summary", ""),
-                work=structured_data.get("work", []),
-                projects=structured_data.get("projects", []),
-                # Use list default based on latest decision for skills structure
-                skills=structured_data.get("skills", []),
-            )
-            print("New Base Resume created.")
-
-            # Prepare response
-            bio_updated = (
-                Bio.objects.select_related("user")
-                .prefetch_related("social_profiles")
-                .get(pk=bio.pk)
-            )
-            base_resume_created = (
-                Resume.objects.select_related("user__bio")
-                .prefetch_related("user__bio__social_profiles")
-                .get(pk=base_resume.pk)
-            )
-            bio_serializer = BioSerializer(bio_updated)
-            resume_serializer = ResumeSerializer(
-                base_resume_created
-            )  # Use merging serializer
-
-            return Response(
-                {
-                    "message": "Resume processed successfully.",
-                    "bio": bio_serializer.data,
-                    "base_resume": resume_serializer.data,
+        # Return only the parsed data without saving to database
+        return Response(
+            {
+                "message": "Resume processed successfully.",
+                "parsed_data": {
+                    "raw_data": structured_data.get("raw_data", {}),
+                    "personalized": structured_data.get("personalized", {}),
                 },
-                status=status.HTTP_200_OK,
-            )
-
-        except Exception as e:
-            print(f"Error updating DB in onboarding: {type(e).__name__} - {e}")
-            return Response(
-                {"error": "Failed to save processed resume data."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            },
+            status=status.HTTP_200_OK,
+        )

@@ -61,9 +61,41 @@ def parse_and_structure_resume_file(uploaded_file) -> dict | None:
         print("Created genai.types.Part from file bytes.")
 
         # --- Step 3: Build the PARSING Prompt (Simpler - AI sees the file directly) ---
-        prompt = f"""IMPERATIVE: Act as a JSON data extraction API. Analyze the content of the provided resume document (passed as the next part). Extract information and structure it into a SINGLE VALID JSON object containing ONLY the keys: "summary" (string), "work" (list of objects with 'company', 'role', 'start_date', 'end_date', 'highlights' list), "projects" (list of objects with 'name', 'description', 'highlights' list), "skills" (LIST of objects with 'category' string and 'skills' comma-separated string), "education" (list of objects with 'institution', 'degree', 'field_of_study', 'end_date'), "languages" (list of strings), "certificates" (list of objects with 'name', 'issuing_organization', 'issue_date'). Use YYYY-MM-DD, YYYY-MM or YYYY for dates. Output ONLY the JSON object starting with {{ and ending with }}.
-        --- STRUCTURED JSON OUTPUT ---
-        """
+        json_structure = """{
+    "raw_data": {
+        "summary": "string",
+        "work": [{"company": "string", "role": "string", "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "highlights": ["string"]}],
+        "projects": [{"name": "string", "description": "string", "highlights": ["string"]}],
+        "skills": [{"category": "string", "skills": "string"}],
+        "education": [{"institution": "string", "degree": "string", "field_of_study": "string", "end_date": "YYYY-MM-DD"}],
+        "languages": ["string"],
+        "certificates": [{"name": "string", "issuing_organization": "string", "issue_date": "YYYY-MM-DD"}]
+    },
+    "personalized": {
+        "summary": "A compelling, personalized professional summary highlighting key achievements and career trajectory",
+        "work": [{"company": "string", "role": "string", "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "highlights": ["Achievement-focused bullet points highlighting impact and results"]}],
+        "projects": [{"name": "string", "description": "Impact-focused project description", "highlights": ["Key achievements and results"]}],
+        "skills": [{"category": "string", "skills": "Prioritized and categorized skills with proficiency levels"}],
+        "education": [{"institution": "string", "degree": "string", "field_of_study": "string", "end_date": "YYYY-MM-DD", "achievements": ["Notable academic achievements"]}],
+        "languages": ["string with proficiency levels"],
+        "certificates": [{"name": "string", "issuing_organization": "string", "issue_date": "YYYY-MM-DD", "relevance": "string"}]
+    }
+}"""
+
+        prompt = f"""IMPERATIVE: Act as a JSON data extraction API. Analyze the content of the provided resume document (passed as the next part). Extract information and structure it into a SINGLE VALID JSON object with the following structure:
+
+{json_structure}
+
+For the personalized section:
+1. Transform raw data into achievement-focused, impact-driven content
+2. Add relevant metrics and quantifiable results where possible
+3. Use strong action verbs and industry-specific terminology
+4. Highlight unique value propositions and career progression
+5. Ensure all dates are in YYYY-MM-DD, YYYY-MM or YYYY format
+
+Output ONLY the JSON object starting with {{ and ending with }}.
+--- STRUCTURED JSON OUTPUT ---
+"""
         # --- End Prompt ---
 
         # --- Step 4: Call AI with Prompt + Part ---
