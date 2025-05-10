@@ -8,6 +8,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontSize: {
+        // Add your custom font size using the CSS variable
+        'custom-large': 'var(--font-size-large)',
+      },
       fontFamily: {
         // Use the CSS variable defined in layout.tsx
         sans: ['var(--font-manrope)', 'sans-serif'],
@@ -40,7 +44,11 @@ const config: Config = {
         muted: {
           DEFAULT: 'hsl(var(--background-muted))', // Map background-muted
           // foreground: 'hsl(var(--muted-foreground))' // Define if needed
-        }
+        },
+        neutral: {
+          900: '#1a1a1a', // Same as --box-background-color
+          // Add other shades if needed
+        },
       },
       borderRadius: {
         DEFAULT: 'var(--border-radius)',
@@ -50,6 +58,10 @@ const config: Config = {
         xl: 'calc(var(--border-radius) + 4px)',
         full: '9999px',
         card: 'var(--border-radius-card)',
+        large: 'var(--large-rounding)', // Added from new config
+      },
+      spacing: {
+        'gap': 'var(--main-gap)', // Added mapping for gap utility
       },
     },
   },

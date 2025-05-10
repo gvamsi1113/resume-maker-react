@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css"; // This imports Inter and other global styles
 
 export const metadata: Metadata = {
-  title: "Rezoome - AI Résumé Tailoring",
+  title: "Rezoome - AI Resume Tailoring for each JD",
   description: "Tailor your résumé for any job description in seconds with Rezoome.",
 };
 
@@ -13,8 +13,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* The font-family is now primarily controlled by globals.css (Inter font) */}
-      {/* antialiased is a good utility class to keep */}
       <body className="antialiased">
         {children}
       </body>

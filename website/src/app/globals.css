@@ -1,226 +1,187 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+/* Self-hosted Inter font */
+@font-face {
+  font-family: 'InterVariable';
+  src: url('/fonts/InterVariable.ttf') format('truetype-variations'),
+       url('/fonts/InterVariable.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  line-height: 1;
+}
+
+@font-face {
+  font-family: 'InterVariable';
+  src: url('/fonts/InterVariable-Italic.ttf') format('truetype-variations'),
+       url('/fonts/InterVariable-Italic.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* Base Colors */
-  --color-primary: 240 5.9% 10%; /* Example: Cool Dark Gray */
-  --color-accent: 217 91% 60%; /* Example: Bright Blue */
-  --color-background: 0 0% 100%; /* Example: White */
-  --color-foreground: var(--color-primary);
+  --main-gap: 1rem; /* Universal spacing unit */
+  --large-rounding: 1.5rem; /* Standard large border radius */
 
-  /* Derived Colors */
-  --color-primary-light: 240 5% 30%;
-  --color-primary-dark: 240 6% 5%;
-  --color-accent-light: 217 90% 70%;
-  --color-accent-dark: 217 90% 50%;
-  --color-background-muted: 0 0% 95%;
-  --color-foreground-muted: 240 4% 46%; /* Example: Medium Gray */
+  /* Primary Color HSL values - base for dynamic color generation */
+  --primary-h: 213.9deg;
+  --primary-s: 100%;
+  --primary-l: 22.5%;
 
-  /* Other UI Elements */
-  --border-radius-soft: 12px; /* For softer corners */
-  --border-radius-max: 9999px; /* For pills/fully rounded */
-  --border-color-default: 240 3.7% 15.9%;
-  --border-color-muted: 240 5% 85%;
+  /* Color Palette */
+  --color-white: hsl(0, 0%, 100%); /* Site-wide default text color; Used in extension mockup gradient */
+  --color-black: hsl(0, 0%, 0%); /* CTA primary text color; Used in logo carousel mask */
+  --color-transparent: transparent; /* Used in logo carousel mask */
 
-  /* Font Families (Assuming Geist is set up) */
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-gray-light: #9CA3AF; /* Tailwind gray-400 */
+  --color-gray-medium-light: #888888;
+  --color-gray-medium: #757575;
+  --color-gray-dark: #534C4C;
+  --color-gray-placeholder: #999999;
 
-  /* Standard Next.js dark theme variables (adjust if needed) */
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  --color-green-400: #4ADE80; /* Tailwind green-400 */
 
-  /* Layout & Dimension Variables */
-  --base-unit: 1rem; /* 16px if browser default is 16px */
-  --page-padding: var(--base-unit);
-  --main-gap: var(--base-unit);
-  --card-padding: var(--base-unit);
-  --small-padding: calc(var(--base-unit) / 2); /* 0.5rem */
-  --medium-padding: calc(var(--base-unit) * 0.75); /* 0.75rem */
-
-  --small-rounding: 1.25rem;
-  --large-rounding: 1.75rem;
-
-  --header-footer-height: 5rem;
-  --logo-size: 3.5rem;
-  --image-card-height: 36.25rem; /* 580px / 16px/rem */
+  --color-background-default: hsl(var(--primary-h), calc(var(--primary-s) - 85%), calc(var(--primary-l) - 12.5%)); /* Site-wide page background color */
   
-  --icon-size-small: 1.25rem;
-  --icon-size-medium: 1.5rem;
-  --button-icon-size: var(--icon-size-small);
+  --color-brown-transparent: rgba(121, 69, 54, 0.3);
+  --color-neutral-800-transparent-20: rgba(38, 38, 38, 0.2); /* Tailwind neutral-800 is #262626 */
 
-  /* SVG Stroke Widths (as unitless numbers for attributes, can't be used directly in CSS vars for SVG attributes without JS) */
-  /* These will remain as JS constants if needed for SVG props, or we use direct numbers in SVGs */
+  /* CTA Gradients */
+  --color-cta-gradient-start: hsl(var(--primary-h), var(--primary-s), var(--primary-l)); /* Start color for .cta-primary gradient; Primary color */
+  --color-cta-gradient-end: hsl(var(--primary-h), calc(var(--primary-s) - 30%), calc(var(--primary-l) + 57.5%)); /* End color for .cta-primary gradient */
+
+  /* Extension Mockup Gradient */
+  --color-mockup-gradient-dark-blue: hsl(calc(var(--primary-h) - 1deg), var(--primary-s), calc(var(--primary-l) - 8.2%));
+  --color-mockup-gradient-medium-blue: hsl(calc(var(--primary-h) - 12.3deg), var(--primary-s), calc(var(--primary-l) + 7.5%)); 
+  --color-mockup-gradient-light-blue: hsl(calc(var(--primary-h) - 10.1deg), calc(var(--primary-s) - 6.4%), calc(var(--primary-l) + 47.7%));
+
+  /* Bento Box Specific */
+  --color-bento-cta-shadow-outer: rgba(70, 70, 70, 1);
+  --color-bento-cta-shadow-inner: rgba(0, 0, 0, 0.6);
+  --color-glass-background: rgba(0, 0, 0, 0.7);
+  --color-glass-border: rgba(45, 71, 127, 0.3);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Maroon-Based Palette */
-    --background: 240 10% 3.9%;       /* Very Dark Grey/Blue */
-    --foreground: 0 0% 98%;           /* Near White */
-    --foreground-muted: 0 0% 65%;      /* Lighter Gray */
-
-    --primary: 0 50% 40%;            /* Maroon */
-    --primary-foreground: 0 0% 100%;  /* White */
-
-    --secondary: 0 30% 30%;          /* Muted Maroon/Brown */
-    --secondary-foreground: 0 0% 98%; /* Near White */
-
-    --accent: 0 50% 55%;             /* Brighter Maroon */
-    --accent-dark: 0 50% 45%;         /* Darker Accent Maroon */
-    /* Keep accent-foreground as primary-foreground if not specified */
-
-    --border: 0 0% 20%;              /* Dark Grey */
-    --border-muted: 0 0% 15%;         /* Darker Grey */
-    --border-default: 0 0% 20%;         /* Dark Grey */
-
-    /* Background for Header/Cards etc. */
-    --background-muted: 0 0% 8%;      /* Slightly lighter than main bg */
-
-    /* Radii */
-    --border-radius: 3rem;         /* Default rounding (adjust as needed) */
-    --border-radius-card: 2rem;       /* Card rounding */
-    --border-radius-header: 0.8rem;   /* Header rounding */
-  }
-}
-
-body {
-  font-family: 'Inter', sans-serif;
-  background-color: #121212; /* Default page background */
-  color: white; /* Default text color for better visibility on dark bg */
-  position: relative; /* Needed for pseudo-elements */
-  min-height: 100vh;
-  overflow-x: hidden; /* Prevent horizontal scroll from grids */
-}
-
-body::before, body::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 50%; /* Adjust height as needed */
-  background-size: 50px 50px;
-  opacity: 0.05; /* Make grids very subtle */
-  z-index: -1; /* Place behind content */
-}
-
-/* Top Grid */
-body::before {
-  top: 0;
-  background-image:
-    linear-gradient(to right, hsl(var(--border-muted)) 1px, transparent 1px),
-    linear-gradient(to bottom, hsl(var(--border-muted)) 1px, transparent 1px);
-  /* Optional perspective */
-  /* transform: perspective(300px) rotateX(60deg) scale(1.2); */
-  /* transform-origin: top center; */
-}
-
-/* Bottom Grid */
-body::after {
-  bottom: 0;
-  background-image:
-    linear-gradient(to right, hsl(var(--border-muted)) 1px, transparent 1px),
-    linear-gradient(to bottom, hsl(var(--border-muted)) 1px, transparent 1px);
-  /* Optional perspective */
-  /* transform: perspective(300px) rotateX(-60deg) scale(1.2); */
-  /* transform-origin: bottom center; */
-}
-
-/* Ensure Tailwind base styles are applied */
 
 
-/* Refine base styles if necessary */
-h1, h2, h3, h4, h5, h6 {
-  color: hsl(var(--primary)); /* Use the maroon primary for headings */
-  font-weight: 700; /* Ensure bold headings use the 700 weight */
-}
-
-a {
-  color: hsl(var(--accent)); /* Use maroon accent for links */
-  text-decoration: none;
-}
-
-a:hover {
-  color: hsl(var(--accent-dark)); /* Use darker accent on hover */
-}
-
-/* Apply default dark background immediately */
-html {
-  background-color: hsl(var(--background));
-}
-
-.metallic-text {
-  background: linear-gradient(to bottom, #FFFFFF, #B4B4B4);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  @apply leading-none; /* Use @apply for Tailwind utility */
-}
-
-.text-helper {
-  color: #A0A0A0; /* Dark grey for helper text */
-  @apply leading-none; /* Use @apply for Tailwind utility */
-}
-
-.cta-gradient {
-  background-image: linear-gradient(to top, #E44903, #FCE1A3);
-  color: black; /* Ensure text on CTA is readable */
-}
-
-/* New Bento Card Style */
-.bento-card-style {
-  background-color: #000000; /* Base card color */
-  background-image: radial-gradient(circle at 10% 20%, rgba(37, 37, 37, 0.3) 0%, transparent 60%); 
-  /* border-radius is handled by JS variables now in components */
-  /* box-shadow: 
-    0 0 0 1px rgba(70, 70, 70, 1); */
-}
-
-.bento-card-cta-container {
-  /* This class adds to or modifies .bento-card-style for the CTA container */
-  /* It assumes base background and rounding are applied by the component */
-  /* It provides the outer border and the inset shadow */
-  box-shadow: 
-    0 0 0 1px rgba(70, 70, 70, 1),   /* Outer border consistent with .bento-card-style */
-    inset 0 0 0 0.25rem rgba(0, 0, 0, 0.6); /* Darker inset, 0.25rem = 4px. Color can be tuned. */
-}
-
-/* Ensure html and body take full height for sticky footer/full-page layouts if needed */
+/* Base body styling */
 html, body {
-  height: 100%;
+  font-family: 'InterVariable', sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 700;
+  background-color: var(--color-background-default);
+  color: var(--color-white);
+  overflow: hidden;
   margin: 0;
   padding: 0;
 }
 
-/* Add any other global styles or resets here */
-
-/* Custom scrollbar for Webkit browsers */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Default heading font weight */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent; /* Make track invisible */
+/* Default anchor tag styling */
+a {
+  text-decoration: none;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(160, 160, 160, 0.3); /* Translucent grey */
-  border-radius: 10px;
-  border: 1px solid transparent; /* Optional: to ensure it doesn't look too flat */
+/* Gradient style for Call-To-Action buttons or elements */
+.cta-primary {
+  background-image: linear-gradient(to top, var(--color-cta-gradient-start), var(--color-cta-gradient-end));
+  color: var(--color-black);
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(160, 160, 160, 0.5);
+/* Gradient style for the extension mockup background */
+@property --gradient-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
 }
 
-/* For Firefox */
-.custom-scrollbar {
-  scrollbar-width: thin; /* "auto" or "thin" */
-  scrollbar-color: rgba(160, 160, 160, 0.3) transparent; /* thumb and track */
+.bg-extension-mockup-gradient {  
+  --gradient-angle: 0deg;
+  background: conic-gradient(from var(--gradient-angle) at 50% 50%, 
+    var(--color-mockup-gradient-dark-blue) 0%, 
+    var(--color-mockup-gradient-medium-blue) 20%, 
+    var(--color-mockup-gradient-light-blue) 40%, 
+    var(--color-white) 50%, 
+    var(--color-mockup-gradient-light-blue) 60%, 
+    var(--color-mockup-gradient-medium-blue) 80%, 
+    var(--color-mockup-gradient-dark-blue) 100%
+  );
+  animation: rotate-conic-gradient 5s linear infinite;
+}
+
+@keyframes rotate-conic-gradient {
+  0% {
+    --gradient-angle: 0deg;
+  }
+  100% {
+    --gradient-angle: 360deg;
+  }
+}
+
+/* Glassmorphism style for Bento boxes */
+.glassmorphism-bento {
+  background-color: var(--color-glass-background);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 2px solid var(--color-glass-border);
+  /* position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease; */
+}
+
+
+/* Logo Carousel Styles */
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.logo-carousel-track {
+  display: inline-flex;
+  animation: scroll-left 40s linear infinite;
+  white-space: nowrap;
+}
+
+.logo-carousel-mask-effect {
+  mask-image: linear-gradient(
+    to right,
+    var(--color-transparent) 0%,
+    var(--color-black) 50px,
+    var(--color-black) calc(100% - 50px),
+    var(--color-transparent) 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    var(--color-transparent) 0%,
+    var(--color-black) 50px,
+    var(--color-black) calc(100% - 50px),
+    var(--color-transparent) 100%
+  );
+}
+
+@keyframes scroll-up {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+.feature-checklist {
+  display: inline-flex;
+  flex-direction: column;
+  animation: scroll-up 4s linear infinite;
 }
