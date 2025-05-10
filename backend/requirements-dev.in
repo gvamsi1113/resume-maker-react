@@ -1,3 +1,4 @@
 ﻿-r requirements.in
 black>=24,<25 # Formatter: Automatically formats code consistently
 ipython>=8,<9 # Enhanced interactive Python shell
+pip-tools>=7.0,<8.0
