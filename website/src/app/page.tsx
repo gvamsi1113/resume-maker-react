@@ -83,7 +83,7 @@ const GradientButton: React.FC<{ className?: string, children: React.ReactNode, 
   );
 const CtaButtonBox: React.FC = () => (
   <BentoBox className='p-[.5rem]'>
-    <GradientButton className='rounded-[1rem] gap-[1.5rem]'>
+    <GradientButton className='rounded-[1rem] gap-[1.5rem] cursor-pointer' onClick={() => window.location.href = '/upload'}>
       <LargeText fontSizeClass="text-[1.8rem]" colorClass='text-[var(--color-black)]'>Fix yours now</LargeText>
       <Upload className="w-[var(--button-icon-size)] h-[var(--button-icon-size)]" />
       <SmallText className='text-[var(--color-black)]'>upload<br />resume</SmallText>

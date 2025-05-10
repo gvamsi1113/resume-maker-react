@@ -63,7 +63,7 @@
   /* Bento Box Specific */
   --color-bento-cta-shadow-outer: rgba(70, 70, 70, 1);
   --color-bento-cta-shadow-inner: rgba(0, 0, 0, 0.6);
-  --color-glass-background: rgba(0, 0, 0, 0.7);
+  --color-glass-background: rgba(0, 0, 0, 0.5);
   --color-glass-border: rgba(45, 71, 127, 0.3);
 }
 
@@ -130,8 +130,8 @@ a {
 /* Glassmorphism style for Bento boxes */
 .glassmorphism-bento {
   background-color: var(--color-glass-background);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
   border: 2px solid var(--color-glass-border);
   /* position: relative;
   overflow: hidden;
