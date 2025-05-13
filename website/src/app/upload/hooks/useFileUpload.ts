@@ -1,22 +1,9 @@
 import { useState, useRef } from 'react';
-import { FileUploadState } from '../types';
+import { FileUploadState, TokenState, ResumeResponse } from '../types';
 import mammoth from 'mammoth';
 import { useRouter } from 'next/navigation';
 
 const API_URL = 'http://localhost:8000/api/onboard/process-resume/';
-
-interface TokenState {
-    token: string | null;
-    captchaChallenge: string | null;
-    captchaAnswer: string | null;
-    error: string | null;
-    loading: boolean;
-}
-
-interface ResumeResponse {
-    id: string;
-    pdfUrl: string;
-}
 
 type GetTokenFn = () => Promise<void>;
 

@@ -1,14 +1,7 @@
 import { useState, useCallback } from 'react';
+import { TokenState } from '../types';
 
 const TOKEN_API_URL = 'http://localhost:8000/api/onboard/get-demo-token/';
-
-interface TokenState {
-    token: string | null;
-    captchaChallenge: string | null;
-    captchaAnswer: string | null;
-    error: string | null;
-    loading: boolean;
-}
 
 export function useDemoToken() {
     console.log('useDemoToken hook initialized');
