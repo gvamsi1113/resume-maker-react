@@ -5,6 +5,7 @@ import BentoBox from '@/components/ui/BentoBox';
 import { LargeText, SmallText } from '@/components/ui/Typography';
 import { twMerge } from 'tailwind-merge';
 import { Upload } from 'lucide-react';
+import Image from 'next/image';
 
 /**
  * Array of top tech company domains for logo URLs
@@ -42,7 +43,14 @@ const LogoCarousel: React.FC<{ className?: string }> = ({ className }) => {
 const HeaderNav: React.FC = () => (
   <BentoBox className="flex flex-row justify-between items-center w-full p-0 pl-[3rem]">
     <div className="flex items-center gap-[1.5rem]">
-      <img src="/logo.png" alt="Rezoome Logo" className="h-[2.5rem]" />
+      <Image
+        src="/logo.png"
+        alt="Rezoome Logo"
+        width={40}
+        height={40}
+        className="h-[2.5rem] w-auto"
+        priority
+      />
       <span className="text-xl font-bold">Rezoome</span>
     </div>
     <nav className="flex items-center gap-[3rem] p-[.5rem] h-full">
@@ -127,10 +135,13 @@ const DownloadFileTypesBox: React.FC = () => (
 
 const BrowserMockupBox: React.FC = () => (
   <BentoBox className='relative p-[.1rem] overflow-hidden bg-extension-mockup-gradient'>
-    <img
+    <Image
       src="/extension_mockup.png"
       alt="Browser Mockup"
+      width={1200}
+      height={800}
       className="relative z-10 w-full h-full object-cover object-[center_20%] rounded-[1.4rem]"
+      priority
     />
   </BentoBox>
 );
@@ -146,9 +157,11 @@ const AiModelsBox: React.FC = () => (
   <BentoBox className='gap-[.5rem]'>
     <SmallText>Smartest AI models</SmallText>
     <div className='flex items-center gap-[1rem]'>
-      <img
+      <Image
         src="/other-logos/gemini.svg"
         alt="Gemini Logo"
+        width={32}
+        height={32}
         className="h-8 object-contain opacity-60 hover:opacity-100 transition-all"
       />
       <LargeText fontSizeClass="text-[1.7rem]">Gemini 2.5</LargeText>

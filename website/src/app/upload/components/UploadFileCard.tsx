@@ -51,12 +51,6 @@ export function UploadFileCard({ file, progress, onCancel, error }: UploadFileCa
                     <RefreshCw size={20} className="text-[var(--color-gray-light)]" />
                 </button>
             </div>
-            {error && (
-                <div className="flex items-center gap-2 text-red-500 text-sm">
-                    <AlertCircle size={16} />
-                    <span>{error.message}</span>
-                </div>
-            )}
             <div className="flex flex-row justify-between items-center w-full">
                 <UploadProgress progress={progress} error={error} />
             </div>

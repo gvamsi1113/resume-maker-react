@@ -4,21 +4,19 @@ import React, { useState, useEffect } from 'react';
 import BentoBox from '@/components/ui/BentoBox';
 import { FileDropzone } from './components/FileDropzone';
 import { UploadProgress } from './components/UploadProgress';
-import { ProcessingState } from './components/ProcessingState';
+// import { ProcessingState } from './components/ProcessingState';
 import { UploadHeader } from './components/UploadHeader';
 import { UploadActions } from './components/UploadActions';
 import { UploadFileCard } from './components/UploadFileCard';
 import { useFileUpload } from './hooks/useFileUpload';
 import { useDemoToken } from './hooks/useDemoToken';
-import { UploadStep } from './types';
-import './upload.css';
 
 /**
  * Main component for handling file uploads with drag and drop functionality
  * @returns {JSX.Element} The upload page component
  */
 export default function UploadPage() {
-    const [step, setStep] = useState<UploadStep>('upload');
+    // const [step, setStep] = useState<UploadStep>('upload');
     const [showCaptcha, setShowCaptcha] = useState(false);
     const [captchaAnswer, setCaptchaAnswer] = useState('');
     const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -36,56 +34,68 @@ export default function UploadPage() {
         handleDragLeave,
         handleDrop,
         startUpload
-    } = useFileUpload(tokenState, getToken, () => {
-        if (fileState.uploadProgress === 100) {
-            setStep('processing');
-        }
-    });
+    } = useFileUpload(tokenState, getToken);
 
     // When a file is selected, check if captcha is required before uploading
     useEffect(() => {
-        console.log('fileState.file:', fileState.file);
-        console.log('tokenState:', tokenState);
+        // If a file is selected but we're already uploading, don't do anything
+        if (fileState.uploading) {
+            return;
+        }
+
         // If a file is selected and no token, request a token
         if (fileState.file && !tokenState.token && !tokenState.loading) {
-            console.log('No token present, requesting token...');
             getToken();
             return;
         }
-        // If all required state for captcha upload is ready, start upload
+
+        // Handle the case when we have a file, token, and captcha is completed
         if (
             fileState.file &&
             tokenState.token &&
             tokenState.captchaChallenge &&
-            tokenState.captchaAnswer
+            tokenState.captchaAnswer &&
+            !fileState.uploading &&
+            !pendingFile // Make sure we're not in the process of handling a pending file
         ) {
-            console.log('Ready to upload with captcha. Hiding captcha and starting upload.');
             setShowCaptcha(false);
             startUpload(fileState.file);
-        } else if (
+            return;
+        }
+
+        // If we have a file and token but no captcha challenge, just upload
+        if (
             fileState.file &&
             tokenState.token &&
-            !tokenState.captchaChallenge
+            !tokenState.captchaChallenge &&
+            !fileState.uploading &&
+            !pendingFile
         ) {
-            console.log('Ready to upload without captcha. Hiding captcha and starting upload.');
             setShowCaptcha(false);
             startUpload(fileState.file);
-        } else if (
+            return;
+        }
+
+        // If we have a file, token, captcha challenge but no answer yet, show captcha
+        if (
             fileState.file &&
+            tokenState.token &&
             tokenState.captchaChallenge &&
-            !tokenState.captchaAnswer
+            !tokenState.captchaAnswer &&
+            !showCaptcha
         ) {
-            console.log('Showing captcha for challenge:', tokenState.captchaChallenge);
             setShowCaptcha(true);
             setPendingFile(fileState.file);
+            return;
         }
-    }, [fileState.file, tokenState.token, tokenState.captchaChallenge, tokenState.captchaAnswer, tokenState.loading]);
+    }, [fileState.file, fileState.uploading, tokenState.token, tokenState.loading,
+    tokenState.captchaChallenge, tokenState.captchaAnswer, getToken, startUpload,
+        showCaptcha, pendingFile]);
 
     // Handle CAPTCHA submission
     const handleCaptchaSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (captchaAnswer && pendingFile) {
-            console.log('Submitting captcha answer:', captchaAnswer, 'for challenge:', tokenState.captchaChallenge);
             validateCaptcha(captchaAnswer); // Store the answer in token state
             setShowCaptcha(false);
             setCaptchaAnswer('');
@@ -95,18 +105,12 @@ export default function UploadPage() {
     };
 
     const handleSubmit = () => {
-        if (fileState.file && fileState.uploadProgress === 100) {
-            setStep('processing');
-        }
+        console.log('handleSubmit');
     };
 
-    if (step === 'processing' && responseData) {
-        return <ProcessingState responseData={responseData} />;
-    }
-
     return (
-        <div className="upload-page-background flex items-center justify-center min-h-screen p-4">
-            <BentoBox className="upload-page-content flex flex-col p-[1rem] md:p-8 gap-5 max-w-lg w-full !items-stretch !text-left transition-all duration-1000 ease-out transition-[height,transform]">
+        <div className="bg-[#161F36] flex items-center justify-center min-h-screen p-4">
+            <BentoBox className="flex flex-col p-[1rem] md:p-8 gap-5 max-w-lg w-full !items-stretch !text-left transition-all duration-1000 ease-out transition-[height,transform]">
                 <UploadHeader />
 
                 {showCaptcha && tokenState.captchaChallenge ? (
@@ -144,11 +148,6 @@ export default function UploadPage() {
                                     : undefined
                             }
                         />
-                        {fileState.uploading && (
-                            <div className="loading-message text-center text-blue-400 mt-2">
-                                Uploading, please wait...
-                            </div>
-                        )}
                         <UploadActions
                             onSubmit={handleSubmit}
                             isSubmitDisabled={!fileState.file || fileState.uploadProgress < 100 || fileState.error !== null}

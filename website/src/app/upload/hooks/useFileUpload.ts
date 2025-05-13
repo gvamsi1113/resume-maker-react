@@ -15,7 +15,6 @@ interface TokenState {
 
 interface ResumeResponse {
     id: string;
-    analysis: any;
     pdfUrl: string;
 }
 
@@ -30,7 +29,6 @@ export function useFileUpload(
     getToken: GetTokenFn,
     onUploadComplete?: () => void
 ) {
-    console.log('useFileUpload hook initialized');
     const router = useRouter();
     const [fileState, setFileState] = useState<FileUploadState>({
         file: null,
@@ -44,7 +42,7 @@ export function useFileUpload(
 
     const handleFileSelect = (selectedFile: File | null) => {
         if (selectedFile) {
-            setFileState(prev => ({
+            setFileState((prev: FileUploadState) => ({
                 ...prev,
                 file: selectedFile,
                 uploadProgress: 0,
@@ -59,43 +57,44 @@ export function useFileUpload(
     };
 
     const handleCancel = () => {
-        setFileState({
-            file: null,
-            uploadProgress: 0,
-            isDraggingOver: false,
-            uploading: false,
-            error: null
-        });
-        setResponseData(null);
-        if (uploadInterval.current) clearInterval(uploadInterval.current);
+        if (uploadInterval.current) {
+            clearInterval(uploadInterval.current);
+            uploadInterval.current = null;
+        }
+
+        // Reset the native file input value if it exists
         const fileInput = document.getElementById('file-upload') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
+        // Perform a reload of the current page.
+        if (typeof window !== 'undefined') {
+            window.location.reload();
+        }
     };
 
     const handleDragEnter = (event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
         event.stopPropagation();
-        setFileState(prev => ({ ...prev, isDraggingOver: true }));
+        setFileState((prev: FileUploadState) => ({ ...prev, isDraggingOver: true }));
     };
 
     const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
         event.stopPropagation();
-        setFileState(prev => ({ ...prev, isDraggingOver: true }));
+        setFileState((prev: FileUploadState) => ({ ...prev, isDraggingOver: true }));
     };
 
     const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
         event.stopPropagation();
         if (!event.currentTarget.contains(event.relatedTarget as Node)) {
-            setFileState(prev => ({ ...prev, isDraggingOver: false }));
+            setFileState((prev: FileUploadState) => ({ ...prev, isDraggingOver: false }));
         }
     };
 
     const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
         event.stopPropagation();
-        setFileState(prev => ({ ...prev, isDraggingOver: false }));
+        setFileState((prev: FileUploadState) => ({ ...prev, isDraggingOver: false }));
         if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
             handleFileSelect(event.dataTransfer.files[0]);
             event.dataTransfer.clearData();
@@ -103,11 +102,8 @@ export function useFileUpload(
     };
 
     const startUpload = async (file: File) => {
-        console.log('startUpload called with file:', file, 'and tokenState:', tokenState);
-
         if (!tokenState.token) {
-            console.error('startUpload called without a token. This should be orchestrated by UploadPage.');
-            setFileState(prev => ({
+            setFileState((prev: FileUploadState) => ({
                 ...prev,
                 uploading: false,
                 error: 'Upload error: Missing authorization. Please try again.'
@@ -116,7 +112,7 @@ export function useFileUpload(
         }
 
         try {
-            setFileState(prev => ({
+            setFileState((prev: FileUploadState) => ({
                 ...prev,
                 uploading: true,
                 uploadProgress: 0,
@@ -154,16 +150,14 @@ export function useFileUpload(
                 const errorData = await response.json();
                 // If token is invalid, let UploadPage handle getting a new one and retrying
                 if (response.status === 403 && errorData.error?.includes('token')) {
-                    console.error('Token error (403):', errorData, 'tokenState:', tokenState, 'file:', file);
                     throw new Error('Please try uploading again with the new token');
                 }
-                console.error('Upload failed:', errorData, 'tokenState:', tokenState, 'file:', file);
                 throw new Error(errorData.error || 'Upload failed');
             }
 
             const data = await response.json();
             setResponseData(data);
-            setFileState(prev => ({ 
+            setFileState((prev: FileUploadState) => ({ 
                 ...prev, 
                 uploadProgress: 100,
                 uploading: false 
@@ -175,14 +169,56 @@ export function useFileUpload(
             // router.push(`/resume/${data.id}`);
             
         } catch (error) {
-            console.error('startUpload error:', error, 'tokenState:', tokenState, 'file:', file);
-            setFileState(prev => ({
+            setFileState((prev: FileUploadState) => ({
                 ...prev,
                 uploading: false,
                 error: error instanceof Error ? error.message : 'Upload failed'
             }));
         }
     };
+
+    // ADDED: Dummy startUpload function
+    // const dmmyStartUpload = async (file: File) => {
+    //     setFileState(prev => ({
+    //         ...prev,
+    //         uploading: true,
+    //         uploadProgress: 0,
+    //         error: null
+    //     }));
+
+    //     // Simulate upload progress
+    //     let progress = 0;
+    //     const progressInterval = setInterval(() => {
+    //         progress += 20;
+    //         if (progress <= 100) {
+    //             setFileState(prev => ({ ...prev, uploadProgress: progress }));
+    //         } else {
+    //             clearInterval(progressInterval);
+    //             setFileState(prev => ({ 
+    //                 ...prev, 
+    //                 uploadProgress: 100,
+    //                 uploading: false 
+    //             }));
+    //             // Simulate successful response
+    //             setResponseData({
+    //                 id: 'dummy-resume-id',
+    //                 pdfUrl: '/dummy-resume.pdf'
+    //             });
+    //             if (onUploadComplete) onUploadComplete();
+    //         }
+    //     }, 500);
+
+        // Simulate an error (optional, uncomment to test error handling)
+        // setTimeout(() => {
+        //     clearInterval(progressInterval);
+        //     setFileState(prev => ({
+        //         ...prev,
+        //         uploading: false,
+        //         error: 'Dummy upload error: Something went wrong!'
+        //     }));
+        // }, 2000);
+    // };
+    // END ADDED: Dummy startUpload function
 
     return {
         fileState,
