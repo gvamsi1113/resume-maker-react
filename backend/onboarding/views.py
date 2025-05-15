@@ -9,7 +9,7 @@ import logging  # Import logging
 from datetime import datetime
 
 from .serializers import ResumeUploadSerializer
-from .services import parse_and_structure_resume_file
+from .services import generate_structured_data_from_file_content
 from .security import SecurityManager
 
 # Import the new service function name
@@ -74,27 +74,26 @@ class OnboardingResumeUploadView(views.APIView):
 
         validated_uploaded_file = upload_serializer.validated_data["resume_file"]
 
-        # Parse with AI
-        logger.info("Parsing resume file content with AI...")
-        structured_data = parse_and_structure_resume_file(validated_uploaded_file)
+        # Call the AI processing service with the new function name
+        logger.info("Processing resume file content with AI...")
+        structured_data = generate_structured_data_from_file_content(
+            validated_uploaded_file
+        )
 
         if structured_data is None:
-            logger.error("AI Parsing failed for the uploaded file.")
+            logger.error("AI processing failed for the uploaded file.")
             return Response(
-                {"error": "Failed to parse resume content using AI."},
+                {"error": "Failed to process resume content using AI."},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
-        logger.info("AI Parsing successful.")
+        logger.info("AI processing successful.")
 
-        # Return only the parsed data without saving to database
+        # Return the structured data from the AI service
         return Response(
             {
                 "message": "Resume processed successfully.",
-                "parsed_data": {
-                    "raw_data": structured_data.get("raw_data", {}),
-                    "personalized": structured_data.get("personalized", {}),
-                },
+                "enhanced_resume_data": structured_data,
             },
             status=status.HTTP_200_OK,
         )
