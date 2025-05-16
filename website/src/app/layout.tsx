@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css"; // This imports Inter and other global styles
+import Providers from "./providers"; // Import the new Providers component
 
 export const metadata: Metadata = {
   title: "Rezoome - AI Resume Tailoring for each JD",
@@ -17,7 +18,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

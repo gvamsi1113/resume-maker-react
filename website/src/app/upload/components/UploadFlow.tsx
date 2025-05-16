@@ -3,10 +3,15 @@ import { FileDropzone } from './FileDropzone';
 import { UploadFileCard } from './UploadFileCard';
 import { UploadActions } from './UploadActions';
 import { CaptchaChallenge } from './CaptchaChallenge';
-import { FileUploadState, TokenState } from '../types';
+import { TokenState, FileUploadState } from '../../../types/resume';
 
 interface UploadFlowProps {
-    fileState: FileUploadState;
+    file: File | null;
+    isUploading: boolean;
+    error: string | null;
+    uploadProgress: number;
+    isDraggingOver: boolean;
+    isSuccess: boolean;
     tokenState: TokenState;
     showCaptcha: boolean;
     onDragEnter: (event: React.DragEvent<HTMLDivElement>) => void;
@@ -25,7 +30,12 @@ interface UploadFlowProps {
  * @returns {JSX.Element} The appropriate component for the current upload state
  */
 export function UploadFlow({
-    fileState,
+    file,
+    isUploading,
+    error,
+    uploadProgress,
+    isDraggingOver,
+    isSuccess,
     tokenState,
     showCaptcha,
     onDragEnter,
@@ -46,18 +56,18 @@ export function UploadFlow({
         );
     }
 
-    if (fileState.file) {
+    if (file) {
         return (
             <>
                 <UploadFileCard
-                    file={fileState.file}
-                    progress={fileState.uploadProgress}
+                    file={file}
+                    progress={uploadProgress}
                     onCancel={onCancel}
                     error={
-                        fileState.error && !fileState.uploading
+                        error && !isUploading
                             ? {
                                 type: 'validation',
-                                message: fileState.error
+                                message: error
                             }
                             : undefined
                     }
@@ -65,9 +75,9 @@ export function UploadFlow({
                 <UploadActions
                     onSubmit={onSubmit}
                     isSubmitDisabled={
-                        !fileState.file ||
-                        fileState.uploadProgress < 100 ||
-                        fileState.error !== null
+                        !file ||
+                        uploadProgress < 100 ||
+                        error !== null
                     }
                 />
             </>
@@ -76,7 +86,7 @@ export function UploadFlow({
 
     return (
         <FileDropzone
-            isDraggingOver={fileState.isDraggingOver}
+            isDraggingOver={isDraggingOver}
             onDragEnter={onDragEnter}
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}

@@ -4,9 +4,9 @@ import React, { useCallback, useEffect } from 'react';
 import BentoBox from '@/components/ui/BentoBox';
 import { UploadHeader } from './components/UploadHeader';
 import { UploadFlow } from './components/UploadFlow';
-import { useFileUpload } from './hooks/useFileUpload';
-import { useDemoToken } from './hooks/useDemoToken';
-import { useCaptchaFlow } from './hooks/useCaptchaFlow';
+import { useFileUpload } from '@/hooks/useFileUpload';
+import { useDemoToken } from '@/hooks/useDemoToken';
+import { useCaptchaFlow } from '@/hooks/useCaptchaFlow';
 
 /**
  * Main component for handling file uploads with drag and drop functionality
@@ -18,8 +18,13 @@ export default function UploadPage() {
 
     // Get file upload state and handlers
     const {
-        fileState,
+        file,
+        isUploading,
+        error,
         responseData,
+        uploadProgress,
+        isDraggingOver,
+        isSuccess,
         handleFileChange,
         handleCancel,
         handleDragEnter,
@@ -31,16 +36,18 @@ export default function UploadPage() {
 
     // Request token when file is selected but no token exists
     useEffect(() => {
-        if (fileState.file && !tokenState.token && !tokenState.loading) {
+        // Only attempt to get token if a file is selected, no token exists,
+        // not currently loading, and there was no error on the previous attempt.
+        if (file && !tokenState.token && !tokenState.loading && !tokenState.error) {
             getToken();
         }
-    }, [fileState.file, tokenState.token, tokenState.loading, getToken]);
+    }, [file, tokenState.token, tokenState.loading, tokenState.error, getToken]);
 
     // Handle captcha flow logic
     const { showCaptcha, pendingFile } = useCaptchaFlow({
         tokenState,
-        file: fileState.file,
-        uploading: fileState.uploading
+        file: file,
+        uploading: isUploading
     });
 
     // Handle form submission
@@ -63,7 +70,12 @@ export default function UploadPage() {
                 <UploadHeader />
 
                 <UploadFlow
-                    fileState={fileState}
+                    file={file}
+                    isUploading={isUploading}
+                    error={error}
+                    uploadProgress={uploadProgress}
+                    isDraggingOver={isDraggingOver}
+                    isSuccess={isSuccess}
                     tokenState={tokenState}
                     showCaptcha={showCaptcha}
                     onDragEnter={handleDragEnter}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TokenState } from '../types';
+import { TokenState } from '../types/resume'; // Adjusted import path
 
 interface UseCaptchaFlowProps {
     tokenState: TokenState;
