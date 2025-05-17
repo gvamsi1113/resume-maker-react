@@ -68,7 +68,8 @@ def _build_gemini_extraction_prompt() -> str:
         "issue_date": "string - YYYY-MM-DD or YYYY-MM",
         "relevance": "string - Relevance of the certificate"
     }],
-    "other_extracted_data": "string - A text field for any other relevant information or key-value pairs found that don't fit other structured fields. Be concise."
+    "other_extracted_data": ["string or object - Each item can be a string for simple notes, or a simple JSON object if the extracted data has a clear inherent structure (e.g., an unrecognized section with key-value pairs). Prefer simple structures."],
+    "analysis": "string - A brief (2-3 sentences) textual analysis of the original resume, highlighting its key strengths, potential weaknesses or gaps, and actionable areas for improvement. Focus on content, structure, and impact relative to common best practices for resume writing."
 }"""
 
     prompt = f"""ABSOLUTELY CRITICAL: YOUR ONLY RESPONSE MUST BE A SINGLE, VALID JSON OBJECT. NO OTHER TEXT, MARKDOWN, EXPLANATIONS, OR ANY CHARACTERS BEFORE THE OPENING '{{' OR AFTER THE CLOSING '}}' ARE ALLOWED. DOUBLE CHECK YOUR FINAL OUTPUT.
@@ -76,9 +77,10 @@ def _build_gemini_extraction_prompt() -> str:
 **TASK:**
 Analyze the content of the provided resume document (passed as the next part). 
 1. Accurately extract contact details (first_name, last_name, email, phone, location) and social media profile links.
-2. Transform and enhance the remaining information from the document to create a 'perfect' professional resume, covering summary, work experience, projects, skills, education, languages, and certificates.
-3. Capture any other relevant information not fitting the defined sections into an 'other_extracted_data' field.
-4. Populate a SINGLE JSON OBJECT with all this information, adhering to the structure defined below and following the STRICT GUIDELINES for content quality and style.
+2. Transform and enhance the remaining information from the document to create a 'perfect' professional resume, covering summary, work experience, projects, skills, education, languages, and certificates, adhering to the STRICT GUIDELINES below.
+3. Capture any other relevant information not fitting the defined sections into the 'other_extracted_data' field. This field should be a JSON structure just like the rest of the fields/sections.
+4. Generate a brief textual 'analysis' of the original resume, focusing on its strengths, weaknesses, and areas for improvement (2-3 sentences).
+5. Populate a SINGLE JSON OBJECT with all this information, adhering to the structure defined below and following the STRICT GUIDELINES for content quality and style.
 
 The output MUST be a SINGLE VALID JSON object with the following structure:
 {json_structure}
@@ -88,20 +90,32 @@ The output MUST be a SINGLE VALID JSON object with the following structure:
 1.  **Contact and Social Information:**
     *   Accurately extract `first_name`, `last_name`, primary `email`, primary `phone` number, and `location` (e.g., City, ST).
     *   Populate the `socials` array with any found social media links (e.g., LinkedIn, GitHub) or personal portfolio/website URLs. Include network name, username (if applicable), and full URL.
-    *   For `other_extracted_data`, include any other distinct pieces of information from the resume that do not fit into the other structured fields. This could be brief notes, objectives if explicitly stated and very distinct, or other miscellaneous details. Keep it concise.
 
-2.  **General Quality & Style (for resume sections like summary, work, etc.):**
+2.  **Other Extracted Data (`other_extracted_data` field):**
+    *   Populate this as a LIST. Each item in the list should be a distinct piece of information from the resume that does not fit into other structured fields.
+    *   If an item is simple text (e.g., a brief note, an objective if very distinct), represent it as a STRING within the list.
+    *   If an item has an inherent structure (e.g., a small, unrecognized section from the resume with clear key-value pairs), represent it as a simple JSON OBJECT within the list. Avoid overly complex or deeply nested objects here. The goal is to capture the miscellaneous data faithfully but simply.
+    *   Keep each item (string or object) concise.
+
+3.  **Resume Analysis (`analysis` field):**
+    *   Provide a brief (2-3 sentences) textual analysis of the original resume.
+    *   Focus on its overall strengths (e.g., clear structure, strong action verbs, good quantification).
+    *   Identify potential weaknesses or gaps (e.g., missing contact info, vague descriptions, lack of metrics, typos).
+    *   Suggest actionable areas for improvement (e.g., "Consider adding a portfolio link," "Quantify achievements in work experience section").
+    *   The tone should be constructive and professional.
+
+4.  **General Quality & Style (for resume sections like summary, work, etc.):**
     *   Maintain an impersonal, objective tone. STRICTLY NO first-person ("I", "me", "my", "we", "our").
     *   NO adverbs (e.g., successfully, effectively, efficiently, very) or vague filler words. Be direct and factual.
     *   NO POTENTIAL, NO AMBIGUITY, NO VAGUE STUFF. NO EXPLANATORY TEXT. NO BRACKETS like (exposure, expert, etc).
     *   Ensure all dates are in YYYY-MM-DD, YYYY-MM, or YYYY format. If day is not present, use YYYY-MM. If month is not present, use YYYY.
     *   The 'work' array should be ordered reverse chronologically (most recent first), if discernible from the input document.
 
-3.  **Summary (`summary` field):**
+5.  **Summary (`summary` field):**
     *   **Length:** Approximately 3 concise lines.
     *   **Content:** Rewrite the summary from the document to be a compelling pitch highlighting key achievements, skills, and career trajectory, suitable for a general professional profile. Output this as a single string value.
 
-4.  **Work Experience (`work[].highlights` field):
+6.  **Work Experience (`work[].highlights` field):
     *   **Quantity:** Aim for 4-6 impactful bullet points per work entry.
     *   **Structure:** MUST follow Action Verb -> Specific Task/Accomplishment -> Quantifiable Result (Metric).
     *   **Action Verbs:** Every bullet point MUST begin with a strong action verb (e.g., Led, Developed, Implemented, Optimized, Reduced, Managed, Created, Automated, Spearheaded, Architected).
@@ -109,22 +123,22 @@ The output MUST be a SINGLE VALID JSON object with the following structure:
     *   **Conciseness (VERY IMPORTANT):** Bullet points MUST be brief. Aim for approximately 185-210 characters including spaces. This is a strong guideline.
     *   **Content Focus:** Rewrite original highlights (or create new ones if the source is poor) to be achievement-focused, showcasing impact and results.
 
-5.  **Projects (`projects` field):
+7.  **Projects (`projects` field):
     *   **Description (`projects[].description`):** Make the description impact-focused. Highlight the project's purpose, key achievements, and results. Clearly state the technologies and skills utilized.
     *   **Keywords (`projects[].keywords`):** List relevant keywords or technologies for the project.
 
-6.  **Skills (`skills` field):
+8.  **Skills (`skills` field):
     *   **Content:** Extract and list hard skills (technical skills, tools, languages, frameworks, methodologies) from the document. Do not add skill level references unless explicitly and clearly stated in the source.
     *   **Categorization:** If skills are already categorized in the source, try to maintain a similar logical grouping (e.g., "Frontend", "Backend", "Databases", "Cloud", "Methodologies"). If not categorized, attempt to group them logically. Output as an array of objects, each with a 'category' (string) and 'skills' (an array of strings for that category).
 
-7.  **Education (`education` field):
+9.  **Education (`education` field):
     *   **Content:** Ensure accuracy of institution, degree, field of study, and end date. 
     *   **Achievements (`education[].achievements`):** If academic achievements are mentioned (e.g., GPA, honors, relevant coursework, thesis), list them clearly.
 
-8.  **Languages (`languages` field):
+10. **Languages (`languages` field):
     *   **Content:** List languages and include proficiency levels if specified in the source document (e.g., "English (Native)", "Spanish (Conversational)").
 
-9.  **Certificates (`certificates` field):
+11. **Certificates (`certificates` field):
     *   **Content:** List certifications with name, issuing organization, and issue date. Add relevance if mentioned or clearly inferable.
 
 **FINAL CHECK & OUTPUT CONSTRAINT (ABSOLUTELY CRITICAL):** Before completing your response, verify that the ENTIRE output is a SINGLE, perfectly valid JSON object starting *exactly* with '{{' and ending *exactly* with '}}'. No other text, markdown, or explanations are permitted. Ensure all strings are properly quoted and escaped, and all commas and brackets are correctly placed.

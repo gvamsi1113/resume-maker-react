@@ -1,29 +1,77 @@
 # backend/resumes/models.py
+import uuid
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models import Q  # For constraints condition
 
 
 class Resume(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="resumes")
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="resumes",
+        null=True,
+        blank=True,
+        default=None,
+    )
     name = models.CharField(max_length=200, default="Untitled Resume")
     is_base_resume = models.BooleanField(default=False, db_index=True)
     # Source Job Info
     source_job_description = models.TextField(blank=True, null=True)
     source_job_url = models.URLField(max_length=1024, blank=True, null=True)
     source_company_name = models.CharField(max_length=150, blank=True, null=True)
-    # Generated/Stored Content for THIS version
-    summary = models.TextField(blank=True, null=True)
-    work = models.JSONField(default=list, blank=True)
-    projects = models.JSONField(default=list, blank=True)
-    skills = models.JSONField(default=dict, blank=True)
+
+    # Fields to store the AI's enhanced_resume_data directly
+    # Top-level contact and summary block
+    first_name = models.CharField(max_length=150, blank=True, null=True)
+    last_name = models.CharField(max_length=150, blank=True, null=True)
+    email = models.EmailField(
+        max_length=254, blank=True, null=True
+    )  # Note: distinct from processed_email
+    phone = models.CharField(
+        max_length=30, blank=True, null=True
+    )  # Note: distinct from processed_phone
+    location = models.CharField(max_length=255, blank=True, null=True)
+    socials = models.JSONField(default=list, blank=True)  # For the 'socials' array
+    summary = models.TextField(blank=True, null=True)  # For the main 'summary' string
+
+    # Arrays from the JSON data
+    work = models.JSONField(
+        default=list, blank=True
+    )  # Stores the 'work' array directly
+    education = models.JSONField(
+        default=list, blank=True
+    )  # Stores the 'education' array directly
+    projects = models.JSONField(
+        default=list, blank=True
+    )  # Stores the 'projects' array directly
+    skills = models.JSONField(
+        default=list, blank=True
+    )  # Stores the 'skills' array directly (array of skill categories)
+    languages = models.JSONField(
+        default=list, blank=True
+    )  # Stores the 'languages' array directly
+    certificates = models.JSONField(
+        default=list, blank=True
+    )  # Stores the 'certificates' array directly
+    other_extracted_data = models.JSONField(
+        default=list, blank=True
+    )  # Stores potentially a list of other extracted items, possibly structured
+
+    # New field for resume analysis
+    analysis = models.TextField(
+        blank=True, null=True
+    )  # Stores text analysis of the original resume
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         base_marker = "[BASE]" if self.is_base_resume else ""
-        return f"{self.user.username} - {self.name} {base_marker}"
+        user_identifier = self.user.username if self.user else "Anonymous"
+        return f"{user_identifier} - {self.name} ({self.id}) {base_marker}"
 
     class Meta:
         ordering = ["-is_base_resume", "-updated_at"]

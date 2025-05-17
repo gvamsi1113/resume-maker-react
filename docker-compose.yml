@@ -4,7 +4,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     # Command assumes manage.py is found relative to WORKDIR in Dockerfile
-    command: python manage.py runserver 0.0.0.0:8000
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     volumes:
       # Mount entire project root
       - .:/workspaces/resume-maker-react
@@ -53,6 +53,21 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+  
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    ports:
+      - "5050:80"  # Expose pgAdmin to your browser via http://localhost:5050
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - db
+
 
 volumes:
   postgres_data:
+  pgadmin_data:

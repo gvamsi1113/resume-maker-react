@@ -124,3 +124,31 @@ class BaseResumeCreateSerializer(serializers.ModelSerializer):
             "projects",
             "skills",
         ]
+
+
+class OnboardingResumeCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Resume
+        fields = [
+            # 'name' is included because it will be part of the data passed to the serializer
+            "name",
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "location",
+            "socials",
+            "summary",
+            "work",
+            "education",
+            "projects",
+            "skills",
+            "languages",
+            "certificates",
+            "other_extracted_data",
+            "analysis",
+        ]
+        # Add any specific validation rules in `extra_kwargs` or `validate_<field>` methods if needed,
+        # but DRF will infer basic validation from model fields (e.g., EmailField, URLField, max_length).
+        # Since most fields are CharField/TextField/JSONField with blank=True or default,
+        # they are already quite flexible.
