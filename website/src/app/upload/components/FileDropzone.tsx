@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { FolderArchive } from 'lucide-react';
+import { FileUp } from 'lucide-react';
 import { SmallText } from '@/components/ui/Typography';
 
 export interface FileDropzoneProps {
@@ -46,7 +46,7 @@ export function FileDropzone({
             role="button"
             aria-label="Upload file by clicking or dragging"
         >
-            <FolderArchive size={48} className={`transition-transform text-[var(--color-gray-light)] duration-400 ${isDraggingOver ? iconDraggingClasses : ''}`} />
+            <FileUp size={48} className={`transition-transform text-[var(--color-gray-light)] duration-400 ${isDraggingOver ? iconDraggingClasses : ''}`} />
             <SmallText className='text-[1rem] text-[var(--color-gray-light)] transition-colors duration-300'>
                 Drag your current resume here<br />or<br /> <span className="underline underline-offset-2 group-hover:text-[var(--color-white)] ">click to browse files</span>.
             </SmallText>

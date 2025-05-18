@@ -47,15 +47,6 @@ export function UploadFlow({
     onCancel,
     onCaptchaSubmit
 }: UploadFlowProps) {
-    if (showCaptcha && tokenState.captchaChallenge) {
-        return (
-            <CaptchaChallenge
-                challenge={tokenState.captchaChallenge}
-                onSubmit={onCaptchaSubmit}
-            />
-        );
-    }
-
     if (file) {
         return (
             <>
@@ -71,15 +62,15 @@ export function UploadFlow({
                             }
                             : undefined
                     }
+                    isWaitingForCaptcha={showCaptcha && !!tokenState.captchaChallenge}
+                    captchaSubmitted={!showCaptcha && !!tokenState.token}
                 />
-                <UploadActions
-                    onSubmit={onSubmit}
-                    isSubmitDisabled={
-                        !file ||
-                        uploadProgress < 100 ||
-                        error !== null
-                    }
-                />
+                {showCaptcha && tokenState.captchaChallenge && (
+                    <CaptchaChallenge
+                        challenge={tokenState.captchaChallenge}
+                        onSubmit={onCaptchaSubmit}
+                    />
+                )}
             </>
         );
     }

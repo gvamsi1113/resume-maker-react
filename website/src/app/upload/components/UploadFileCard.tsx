@@ -11,6 +11,8 @@ interface UploadFileCardProps {
         type: 'validation' | 'network' | 'server' | 'processing';
         message: string;
     };
+    isWaitingForCaptcha: boolean;
+    captchaSubmitted: boolean;
 }
 
 function getFileIcon(type: string, name: string) {
@@ -26,7 +28,7 @@ function getFileIcon(type: string, name: string) {
 /**
  * Card to show uploading file info, progress, and cancel button
  */
-export function UploadFileCard({ file, progress, onCancel, error }: UploadFileCardProps) {
+export function UploadFileCard({ file, progress, onCancel, error, isWaitingForCaptcha, captchaSubmitted }: UploadFileCardProps) {
     const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
     const fileType = file.name.split('.').pop()?.toUpperCase() || file.type || 'FILE';
 
@@ -52,7 +54,7 @@ export function UploadFileCard({ file, progress, onCancel, error }: UploadFileCa
                 </button>
             </div>
             <div className="flex flex-row justify-between items-center w-full">
-                <UploadProgress progress={progress} error={error} />
+                <UploadProgress progress={progress} error={error} isWaitingForCaptcha={isWaitingForCaptcha} isSuccess={false} captchaSubmitted={captchaSubmitted} />
             </div>
         </BentoBox>
     );

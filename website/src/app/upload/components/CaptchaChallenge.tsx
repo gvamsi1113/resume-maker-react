@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import BentoBox from '@/components/ui/BentoBox';
+import { SmallText } from '@/components/ui/Typography';
 
 interface CaptchaChallengeProps {
     challenge: string;
@@ -21,24 +23,25 @@ export function CaptchaChallenge({ challenge, onSubmit }: CaptchaChallengeProps)
     };
 
     return (
-        <div className="captcha-container p-4 bg-white/5 rounded-lg">
-            <h3 className="text-lg font-semibold mb-4">Please solve this CAPTCHA to continue</h3>
-            <p className="text-xl mb-4">{challenge}</p>
-            <form onSubmit={handleSubmit} className="flex gap-2">
+        <BentoBox className="flex flex-col items-start p-[1.5rem] gap-[.5rem]">
+            <SmallText className="text-[var(--color-gray-light)] p-0 pl-[.3rem] pt-[.2rem] pb-[.75rem]">Please solve this CAPTCHA to continue</SmallText>
+            <p className="text-xl text-[var(--color-white)] pl-[.5rem]">{challenge}</p>
+            <form onSubmit={handleSubmit} className="flex w-full rounded-[calc(var(--large-rounding)/2)] bg-[var(--color-glass-border)] overflow-hidden">
                 <input
                     type="text"
                     value={answer}
                     onChange={(e) => setAnswer(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-white/10 rounded border border-white/20"
+                    className="flex-1 px-[1rem] py-[.5rem] bg-[var(--color-glass-background)] outline-none rounded-l-[calc(var(--large-rounding)/2)] text-xl w-full"
                     placeholder="Enter your answer"
+                    autoFocus
                 />
                 <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    className="px-[1rem] bg-[var(--color-mockup-gradient-dark-blue)] text-white rounded-l-none hover:bg-blue-500"
                 >
                     Submit
                 </button>
             </form>
-        </div>
+        </BentoBox>
     );
 } 

@@ -7,83 +7,136 @@ interface UploadProgressProps {
         type: 'validation' | 'network' | 'server' | 'processing';
         message: string;
     };
+    isWaitingForCaptcha: boolean;
+    isSuccess: boolean;
+    captchaSubmitted: boolean;
 }
 
-// Dummy test hook
-const useDummyUpload = () => {
-    const [progress, setProgress] = React.useState(0);
-    const [error, setError] = React.useState<{ type: 'validation' | 'network' | 'server' | 'processing'; message: string } | undefined>(undefined);
+interface UseUploadProgressParams {
+    progress: number;
+    error?: UploadProgressProps['error'];
+    isWaitingForCaptcha: boolean;
+    isSuccess: boolean;
+    captchaSubmitted: boolean;
+}
 
-    React.useEffect(() => {
-        // Simulate progress
-        const interval = setInterval(() => {
-            setProgress(prev => {
-                if (prev >= 100) {
-                    clearInterval(interval);
-                    return 100;
-                }
-                return prev + 10;
-            });
-        }, 1000);
+interface SimplifiedDisplayState {
+    displayProgress: number;
+    barColorClass: string;
+    IconComponent: React.ElementType | null;
+    message: string | null;
+    messageColorClass: string;
+    transitionStyle: string;
+}
 
-        // Simulate an error after some time (optional)
-        // setTimeout(() => {
-        //     setError({ type: 'server', message: 'Dummy server error' });
-        //     clearInterval(interval);
-        // }, 5000);
-
-        return () => clearInterval(interval);
-    }, []);
-
-    return { progress, error };
+const useUploadDisplayLogic = ({ progress, error, isWaitingForCaptcha, isSuccess, captchaSubmitted }: UseUploadProgressParams): SimplifiedDisplayState => {
+    if (error) {
+        return {
+            displayProgress: 100,
+            barColorClass: 'bg-red-500',
+            IconComponent: AlertCircle,
+            message: error.message,
+            messageColorClass: 'text-red-500 text-sm',
+            transitionStyle: 'none',
+        };
+    } else if (isSuccess) {
+        return {
+            displayProgress: 100,
+            barColorClass: 'bg-blue-500',
+            IconComponent: CheckCircle,
+            message: 'Resume Perfected',
+            messageColorClass: 'text-blue-500 text-sm',
+            transitionStyle: 'width 1s ease-in-out',
+        };
+    } else if (isWaitingForCaptcha) {
+        return {
+            displayProgress: 20,
+            barColorClass: 'bg-yellow-500',
+            IconComponent: Timer,
+            message: 'Waiting for CAPTCHA...',
+            messageColorClass: 'text-yellow-600 text-sm',
+            transitionStyle: 'width 300ms ease-in-out',
+        };
+    } else if (captchaSubmitted) {
+        return {
+            displayProgress: 99,
+            barColorClass: 'bg-blue-500',
+            IconComponent: Loader2,
+            message: 'Perfecting...',
+            messageColorClass: 'text-gray-500 text-sm',
+            transitionStyle: 'width 100s linear',
+        };
+    } else if (progress === 0) {
+        return {
+            displayProgress: 0,
+            barColorClass: 'bg-blue-500',
+            IconComponent: null,
+            message: null,
+            messageColorClass: 'text-gray-500 text-sm',
+            transitionStyle: 'width 300ms ease-in-out',
+        };
+    } else if (progress > 0 && progress < 100) {
+        return {
+            displayProgress: progress,
+            barColorClass: 'bg-blue-500',
+            IconComponent: Loader2,
+            message: 'Processing...',
+            messageColorClass: 'text-gray-500 text-sm',
+            transitionStyle: 'width 300ms ease-in-out',
+        };
+    } else {
+        return {
+            displayProgress: 100,
+            barColorClass: 'bg-blue-500',
+            IconComponent: Loader2,
+            message: 'Finalizing...',
+            messageColorClass: 'text-gray-500 text-sm',
+            transitionStyle: 'width 300ms ease-in-out',
+        };
+    }
 };
-// End of dummy test hook
 
 /**
  * Component for displaying upload progress
  * @param {UploadProgressProps} props - Component props
  * @returns {JSX.Element} The upload progress component
  */
-export function UploadProgress({ /* progress, error */ }: UploadProgressProps) {
-    const { progress, error } = useDummyUpload();
+export function UploadProgress({ progress, error, isWaitingForCaptcha, isSuccess, captchaSubmitted }: UploadProgressProps) {
+    const {
+        displayProgress,
+        barColorClass,
+        IconComponent,
+        message,
+        messageColorClass,
+        transitionStyle
+    } = useUploadDisplayLogic({
+        progress,
+        error,
+        isWaitingForCaptcha,
+        isSuccess,
+        captchaSubmitted
+    });
+
     return (
         <div className="w-full flex flex-col gap-[1rem]">
-            {error && (
-                <div className="flex items-center gap-2 text-red-500 text-sm">
-                    <AlertCircle size={16} />
-                    <span>{error.message}</span>
-                </div>
-            )}
-            {!error && progress < 100 && (
-                <div className="flex items-center justify-between w-full gap-2 text-gray-500 text-sm">
-                    <div className="flex items-center gap-2">
-                        <Loader2 size={16} className="animate-spin" />
-                        <span>Processing...</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Timer size={16} className="animate-spin" />
-                        <span>Processing...</span>
-                    </div>
-                </div>
-            )}
-            {!error && progress === 100 && (
-                <div className="flex items-center gap-2 text-blue-500 text-sm">
-                    <CheckCircle size={16} />
-                    <span>Resume Perfected</span>
+            {IconComponent && message && (
+                <div className={`flex items-center gap-2 ${messageColorClass}`}>
+                    <IconComponent
+                        size={16}
+                        className={IconComponent === Loader2 ? 'animate-spin' : ''}
+                    />
+                    <span>{message}</span>
                 </div>
             )}
             <div className="h-2 w-full bg-[var(--color-gray-medium)]/20 rounded-full overflow-hidden">
                 <div
-                    className={`h-full ${error ? 'bg-red-500' : 'bg-blue-500'}`}
+                    className={`h-full ${barColorClass}`}
                     style={{
-                        width: error ? '100%' : `${progress}%`,
-                        transition: error ? 'none' : 'width 300ms ease-in-out'
+                        width: `${displayProgress}%`,
+                        transition: transitionStyle
                     }}
                 />
             </div>
-            {/* <div className="mt-[1rem] text-[.75rem] text-[var(--color-gray-light)] justify-start">
-                {error ? 'Upload failed' : `${progress}% uploaded`}
-            </div> */}
         </div>
     );
 } 
