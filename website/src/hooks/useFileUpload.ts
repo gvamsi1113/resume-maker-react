@@ -2,24 +2,16 @@ import { useState, useRef, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import mammoth from 'mammoth';
 import { processResume } from '../api/resume';
-import { FileUploadState, TokenState, ResumeResponse } from '../types/resume';
-
-// const API_URL = 'http://localhost:8000/api/onboard/process-resume/'; // No longer needed
-
-type GetTokenFn = () => Promise<void>; // This might need to be re-evaluated based on auth flow
+import { TokenState, ResumeResponse } from '../types/resume';
 
 export function useFileUpload(
     tokenState: TokenState,
-    getToken: GetTokenFn, // Consider if this is still the best way to handle token refresh with React Query
     onUploadSuccess?: (data: ResumeResponse) => void,
     onUploadError?: (error: Error) => void
 ) {
-    // const router = useRouter(); // See comment above
     const [file, setFile] = useState<File | null>(null);
     const [isDraggingOver, setIsDraggingOver] = useState(false);
-    // Removed uploadProgress from local state as useMutation provides status
 
-    // The core mutation logic using React Query
     const mutation = useMutation<ResumeResponse, Error, File, unknown>({
         mutationFn: async (fileToUpload: File) => {
             if (!tokenState.token) {
@@ -27,7 +19,6 @@ export function useFileUpload(
             }
 
             let processedFile = fileToUpload;
-            // DOCX conversion
             if (fileToUpload.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
                 const arrayBuffer = await fileToUpload.arrayBuffer();
                 const { value: text } = await mammoth.extractRawText({ arrayBuffer });
