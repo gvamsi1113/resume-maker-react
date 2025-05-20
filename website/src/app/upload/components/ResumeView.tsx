@@ -23,20 +23,33 @@ const styles = StyleSheet.create({
         padding: 30,
         // fontFamily: 'Roboto', // Use registered font
         fontSize: 10,
-        lineHeight: 1.4,
+        lineHeight: 1.3, // Slightly reduced line height for compactness
+        textAlign: 'justify', // Justify text globally
     },
     header: {
         textAlign: 'center',
-        marginBottom: 20,
+        marginBottom: 10, // Reduced space
     },
     name: {
         fontSize: 24,
         fontWeight: 'bold',
-        marginBottom: 5,
+        marginBottom: 15, // Increased space
+    },
+    contactRow: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        marginTop: 2, // Reduced space
+    },
+    contactInfoItem: {
+        fontSize: 9,
+        color: 'grey',
+        marginHorizontal: 4, // Slightly reduced space
     },
     contactInfo: {
         fontSize: 9,
-        marginBottom: 2,
+        marginBottom: 1, // Reduced space
         color: 'grey',
     },
     contactLink: {
@@ -44,10 +57,10 @@ const styles = StyleSheet.create({
         textDecoration: 'underline',
     },
     section: {
-        marginBottom: 15,
+        marginBottom: 5, // Reduced space
     },
     sectionTitle: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: 'bold',
         marginBottom: 8,
         borderBottomWidth: 1,
@@ -56,11 +69,27 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
     subsection: {
-        marginBottom: 10,
+        marginBottom: 4, // Reduced space
+    },
+    jobTitleAndDatesRow: { // New style for the row containing job title and dates
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center', // Ensuring this is 'center' for vertical centering
+        marginBottom: 1, // Minimal space before company name
+    },
+    jobTitleWrapper: { // New style for the View wrapping the job title Text
+        flex: 1, // Takes available space
+        marginRight: 10, // Space between job title and dates
+        // justifyContent: 'center', // If needed for text within this wrapper
     },
     jobTitle: {
         fontSize: 11,
         fontWeight: 'bold',
+        // flex: 1 and marginRight moved to jobTitleWrapper
+    },
+    datesWrapper: { // New style for the View wrapping the dates Text
+        // This View helps in making the dates part a clear flex item for alignment.
+        // justifyContent: 'center', // If needed for text within this wrapper
     },
     company: {
         fontSize: 10,
@@ -68,41 +97,63 @@ const styles = StyleSheet.create({
     },
     dates: {
         fontSize: 9,
-        color: '#555555',
-        marginBottom: 3,
+        color: '#333333',
+        textAlign: 'right', // Ensure dates are right-aligned within their own text box
     },
     listItem: {
-        marginLeft: 10,
-        marginBottom: 2,
+        flexDirection: 'row', // For bullet alignment
+        marginBottom: 1.5, // Adjusted for consistent line/bullet spacing
+    },
+    listItemText: { // New style for the text part of the list item
+        flex: 1, // Allow text to wrap
+        marginLeft: 5, // Indent text from bullet
     },
     skillsContainer: {
-        // flexDirection: 'row', // SkillCategory will now be blocks
-        // flexWrap: 'wrap',
+        // No specific container styles needed for new layout
     },
     skillCategory: {
-        // marginRight: 15, // Not needed if categories are block
-        marginBottom: 10, // Space between categories
-        // minWidth: '45%', 
+        // Removed flex properties, this View is now just for margin between skill lines
+        marginBottom: 3,
     },
     skillCategoryTitle: {
         fontWeight: 'bold',
         fontSize: 10,
-        marginBottom: 3,
+        // marginRight: 5, // Removed, as it's part of the same Text flow
+    },
+    skillListText: {
+        fontSize: 9.5,
+        // flex: 1, // Removed, no longer a flex item
+        lineHeight: 1.4, // Adjusted for better readability if text wraps
     },
     paragraph: {
-        textAlign: 'justify', // For a block-style summary
+        marginBottom: 5, // Ensure summary also has some bottom margin if needed
     },
-    // Add more styles as needed
 });
 
-// Helper to render personal info links
-const ContactLinkItem = ({ label, value, isEmail = false, isSocial = false, platform }: { label?: string; value?: string, isEmail?: boolean, isSocial?: boolean, platform?: string }) => {
+// Date Formatter Helper
+const formatDate = (dateString?: string, isEndDatePresent?: boolean): string => {
+    if (isEndDatePresent && dateString === 'Present') return 'Present';
+    if (!dateString) return '';
+
+    const parts = dateString.split('-');
+    const year = parts[0];
+    const month = parts.length > 1 ? parts[1] : '';
+
+    if (month) {
+        const monthDate = new Date(parseInt(year), parseInt(month) - 1);
+        const monthName = monthDate.toLocaleString('default', { month: 'long' });
+        return `${monthName} ${year}`;
+    }
+    return year;
+};
+
+// Helper to render personal info links (simplified to remove labels)
+const ContactLinkItem = ({ value, isEmail = false }: { value?: string, isEmail?: boolean }) => {
     if (!value) return null;
     const href = isEmail ? `mailto:${value}` : (value.startsWith('http') ? value : `https://${value}`);
-    const displayLabel = isSocial ? platform : label;
     return (
-        <Text style={styles.contactInfo}>
-            {displayLabel ? `${displayLabel}: ` : ''}<Link src={href} style={styles.contactLink}>{value}</Link>
+        <Text style={styles.contactInfoItem}>
+            <Link src={href} style={styles.contactLink}>{value}</Link>
         </Text>
     );
 };
@@ -117,17 +168,19 @@ const ResumeDocument: React.FC<{ resume: EnhancedResumeData }> = ({ resume }) =>
                 {/* Header: Name & Contact */}
                 <View style={styles.header}>
                     {fullName && <Text style={styles.name}>{fullName}</Text>}
-                    {resume.email && <ContactLinkItem label="Email" value={resume.email} isEmail />}
-                    {resume.phone && <Text style={styles.contactInfo}>Phone: {resume.phone}</Text>}
-                    {resume.location && <Text style={styles.contactInfo}>Location: {resume.location}</Text>}
-                    {resume.socials && resume.socials.map((social: SocialLink, index: number) => (
-                        <ContactLinkItem key={index} value={social.url} isSocial platform={social.platform} />
-                    ))}
+                    <View style={styles.contactRow}>
+                        {resume.email && <ContactLinkItem value={resume.email} isEmail />}
+                        {resume.phone && <Text style={styles.contactInfoItem}>{resume.phone}</Text>}
+                        {resume.location && <Text style={styles.contactInfoItem}>{resume.location}</Text>}
+                        {resume.socials && resume.socials.map((social: SocialLink, index: number) => (
+                            <ContactLinkItem key={index} value={social.url} />
+                        ))}
+                    </View>
                 </View>
 
                 {/* Summary */}
                 {resume.summary && (
-                    <View style={styles.section}>
+                    <View style={styles.section} wrap={false}>
                         <Text style={styles.sectionTitle}>Summary</Text>
                         <Text style={styles.paragraph}>{resume.summary}</Text>
                     </View>
@@ -138,17 +191,25 @@ const ResumeDocument: React.FC<{ resume: EnhancedResumeData }> = ({ resume }) =>
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Work Experience</Text>
                         {resume.work.map((exp: WorkExperience, index: number) => (
-                            <View key={index} style={styles.subsection}>
-                                {exp.position && <Text style={styles.jobTitle}>{exp.position}</Text>}
+                            <View key={index} style={styles.subsection} wrap={false}>
+                                <View style={styles.jobTitleAndDatesRow}>
+                                    <View style={styles.jobTitleWrapper}>
+                                        {exp.position && <Text style={styles.jobTitle}>{exp.position}</Text>}
+                                    </View>
+                                    <View style={styles.datesWrapper}>
+                                        {(exp.startDate || exp.endDate) && (
+                                            <Text style={styles.dates}>
+                                                {formatDate(exp.startDate)} - {formatDate(exp.endDate, exp.endDate === 'Present' || !exp.endDate)}
+                                            </Text>
+                                        )}
+                                    </View>
+                                </View>
                                 {exp.name && <Text style={styles.company}>{exp.name}{resume.location ? `, ${resume.location}` : ''}</Text>} {/* Assuming company location is main resume location, adjust if exp has its own location */}
-                                {(exp.startDate || exp.endDate) && (
-                                    <Text style={styles.dates}>
-                                        {exp.startDate} - {exp.endDate || 'Present'}
-                                    </Text>
-                                )}
-                                {exp.story && <Text style={{ marginBottom: 3, fontSize: 9.5 }}>{exp.story}</Text>}
                                 {exp.highlights && exp.highlights.map((highlight: string, i: number) => (
-                                    <Text key={i} style={styles.listItem}>• {highlight}</Text>
+                                    <View key={i} style={styles.listItem}>
+                                        <Text>•</Text>
+                                        <Text style={styles.listItemText}>{highlight}</Text>
+                                    </View>
                                 ))}
                             </View>
                         ))}
@@ -157,20 +218,28 @@ const ResumeDocument: React.FC<{ resume: EnhancedResumeData }> = ({ resume }) =>
 
                 {/* Education */}
                 {resume.education && resume.education.length > 0 && (
-                    <View style={styles.section}>
+                    <View style={styles.section} wrap={false}>
                         <Text style={styles.sectionTitle}>Education</Text>
                         {resume.education.map((edu: EducationEntry, index: number) => (
                             <View key={index} style={styles.subsection}>
-                                {edu.studyType && <Text style={styles.jobTitle}>{edu.studyType}{edu.area ? ` in ${edu.area}` : ''}</Text>}
+                                <View style={styles.jobTitleAndDatesRow}>
+                                    <View style={styles.jobTitleWrapper}>
+                                        {edu.studyType && <Text style={styles.jobTitle}>{edu.studyType}{edu.area ? ` in ${edu.area}` : ''}</Text>}
+                                    </View>
+                                    <View style={styles.datesWrapper}>
+                                        {(edu.endDate || edu.gpa) && (
+                                            <Text style={styles.dates}>
+                                                {formatDate(edu.endDate)} {edu.gpa ? `(GPA: ${edu.gpa})` : ''}
+                                            </Text>
+                                        )}
+                                    </View>
+                                </View>
                                 {edu.institution && <Text style={styles.company}>{edu.institution}</Text>}
-                                {(edu.endDate || edu.gpa) && (
-                                    <Text style={styles.dates}>
-                                        {/* Assuming endDate is graduation date. Add startDate if available/needed */}
-                                        {edu.endDate} {edu.gpa ? `(GPA: ${edu.gpa})` : ''}
-                                    </Text>
-                                )}
                                 {edu.achievements && edu.achievements.map((ach: string, i: number) => (
-                                    <Text key={i} style={styles.listItem}>• {ach}</Text>
+                                    <View key={i} style={styles.listItem}>
+                                        <Text>•</Text>
+                                        <Text style={styles.listItemText}>{ach}</Text>
+                                    </View>
                                 ))}
                             </View>
                         ))}
@@ -179,16 +248,16 @@ const ResumeDocument: React.FC<{ resume: EnhancedResumeData }> = ({ resume }) =>
 
                 {/* Skills */}
                 {resume.skills && resume.skills.length > 0 && (
-                    <View style={styles.section}>
+                    <View style={styles.section} wrap={false}>
                         <Text style={styles.sectionTitle}>Skills</Text>
                         <View style={styles.skillsContainer}>
                             {resume.skills.map((skillCat: SkillCategory, catIndex: number) => (
                                 skillCat.category && skillCat.skills && skillCat.skills.length > 0 ? (
                                     <View key={catIndex} style={styles.skillCategory}>
-                                        <Text style={styles.skillCategoryTitle}>{skillCat.category}</Text>
-                                        {skillCat.skills.map((skill: string, skillIndex: number) => (
-                                            <Text key={skillIndex} style={styles.listItem}>• {skill}</Text>
-                                        ))}
+                                        <Text style={styles.skillListText}>
+                                            <Text style={styles.skillCategoryTitle}>{skillCat.category}: </Text>
+                                            {skillCat.skills.join(', ')}
+                                        </Text>
                                     </View>
                                 ) : null
                             ))}
@@ -198,7 +267,7 @@ const ResumeDocument: React.FC<{ resume: EnhancedResumeData }> = ({ resume }) =>
 
                 {/* Projects */}
                 {resume.projects && resume.projects.length > 0 && (
-                    <View style={styles.section}>
+                    <View style={styles.section} wrap={false}>
                         <Text style={styles.sectionTitle}>Projects</Text>
                         {resume.projects.map((proj: ProjectEntry, index: number) => (
                             <View key={index} style={styles.subsection}>
@@ -207,7 +276,7 @@ const ResumeDocument: React.FC<{ resume: EnhancedResumeData }> = ({ resume }) =>
                                 {proj.technologies_used && proj.technologies_used.length > 0 && (
                                     <Text style={styles.dates}>Technologies: {proj.technologies_used.join(', ')}</Text>
                                 )}
-                                {proj.link && <ContactLinkItem label="Link" value={proj.link} />}
+                                {proj.link && <ContactLinkItem value={proj.link} />}
                             </View>
                         ))}
                     </View>
@@ -215,14 +284,14 @@ const ResumeDocument: React.FC<{ resume: EnhancedResumeData }> = ({ resume }) =>
 
                 {/* Certifications */}
                 {resume.certificates && resume.certificates.length > 0 && (
-                    <View style={styles.section}>
+                    <View style={styles.section} wrap={false}>
                         <Text style={styles.sectionTitle}>Certifications</Text>
                         {resume.certificates.map((cert: CertificateEntry, index: number) => (
                             <View key={index} style={styles.subsection}>
                                 <Text style={styles.jobTitle}>{cert.name}</Text>
                                 {cert.issuing_organization && <Text style={styles.company}>{cert.issuing_organization}</Text>}
                                 {cert.date_obtained && <Text style={styles.dates}>Obtained: {cert.date_obtained}</Text>}
-                                {cert.url && <ContactLinkItem label="View" value={cert.url} />}
+                                {cert.url && <ContactLinkItem value={cert.url} />}
                             </View>
                         ))}
                     </View>
@@ -230,20 +299,29 @@ const ResumeDocument: React.FC<{ resume: EnhancedResumeData }> = ({ resume }) =>
 
                 {/* Languages */}
                 {resume.languages && resume.languages.length > 0 && (
-                    <View style={styles.section}>
+                    <View style={styles.section} wrap={false}>
                         <Text style={styles.sectionTitle}>Languages</Text>
-                        {resume.languages.map((lang: string, index: number) => (
-                            <Text key={index} style={styles.listItem}>• {lang}</Text>
-                        ))}
+                        <Text style={styles.skillListText}>{resume.languages.join(', ')}</Text>
                     </View>
                 )}
 
                 {/* Other Extracted Data */}
-                {resume.other_extracted_data && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Other Information</Text>
-                        <Text>{resume.other_extracted_data}</Text>
-                    </View>
+                {resume.other_extracted_data && Array.isArray(resume.other_extracted_data) && resume.other_extracted_data.length > 0 && (
+                    <>
+                        {resume.other_extracted_data.map((item: { section_title: string; content: string[] }, index: number) => (
+                            item.section_title && item.content && item.content.length > 0 ? (
+                                <View key={index} style={styles.section} wrap={false}>
+                                    <Text style={styles.sectionTitle}>{item.section_title}</Text>
+                                    {item.content.map((line: string, lineIndex: number) => (
+                                        <View key={lineIndex} style={styles.listItem}>
+                                            <Text>•</Text>
+                                            <Text style={styles.listItemText}>{line}</Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            ) : null
+                        ))}
+                    </>
                 )}
 
             </Page>
@@ -258,7 +336,7 @@ interface ResumeViewProps {
 const ResumeView: React.FC<ResumeViewProps> = ({ resumeData }) => {
     // Check for the new data structure path
     if (!resumeData || !resumeData.enhanced_resume_data) {
-        return <div className="p-4 text-white">Loading resume data or data is not available...</div>; // Changed to div for non-PDF context
+        return <div className="text-red-500">Something went wrong. Please try again.</div>;
     }
 
     const structuredData = resumeData.enhanced_resume_data; // Use the correct property

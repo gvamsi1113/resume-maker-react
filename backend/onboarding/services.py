@@ -1,21 +1,36 @@
 # backend/onboarding/services.py
 import os
 import json
+import logging
+import tempfile  # Added for temporary file handling
+from typing import Union  # For type hinting
+
 from google import genai
 from google.genai import types
+import textract  # Import textract directly
+from django.core.files.uploadedfile import UploadedFile  # For type checking
+
+logger = logging.getLogger(__name__)
 
 # --- AI Client Setup ---
 GENAI_CONFIGURED = False
 client = None
 try:
+    # Ensure API key is correctly fetched from environment variables
     api_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        raise RuntimeError("API Key not found for GenAI Client.")
+        raise RuntimeError(
+            "API Key (GOOGLE_API_KEY or GEMINI_API_KEY) not found in environment variables for GenAI Client."
+        )
     client = genai.Client(api_key=api_key)
     GENAI_CONFIGURED = True
-    print("GenAI Client configured successfully for onboarding service.")
+    logger.info(
+        "GenAI Client configured successfully for onboarding service."
+    )  # Use logger
 except Exception as e:
-    print(f"(Onboarding Service) ERROR configuring GenAI Client: {e}")
+    logger.error(
+        f"(Onboarding Service) ERROR configuring GenAI Client: {e}"
+    )  # Use logger
 # --- End AI Client Setup ---
 
 
@@ -68,7 +83,7 @@ def _build_gemini_extraction_prompt() -> str:
         "issue_date": "string - YYYY-MM-DD or YYYY-MM",
         "relevance": "string - Relevance of the certificate"
     }],
-    "other_extracted_data": ["string or object - Each item can be a string for simple notes, or a simple JSON object if the extracted data has a clear inherent structure (e.g., an unrecognized section with key-value pairs). Prefer simple structures."],
+    "other_extracted_data": ["list of objects - Each item should be a simple JSON object of an unrecognized section like Position of Responsibility, etc."],
     "analysis": "string - A brief (2-3 sentences) textual analysis of the original resume, highlighting its key strengths, potential weaknesses or gaps, and actionable areas for improvement. Focus on content, structure, and impact relative to common best practices for resume writing."
 }"""
 
@@ -92,10 +107,7 @@ The output MUST be a SINGLE VALID JSON object with the following structure:
     *   Populate the `socials` array with any found social media links (e.g., LinkedIn, GitHub) or personal portfolio/website URLs. Include network name, username (if applicable), and full URL.
 
 2.  **Other Extracted Data (`other_extracted_data` field):**
-    *   Populate this as a LIST. Each item in the list should be a distinct piece of information from the resume that does not fit into other structured fields.
-    *   If an item is simple text (e.g., a brief note, an objective if very distinct), represent it as a STRING within the list.
-    *   If an item has an inherent structure (e.g., a small, unrecognized section from the resume with clear key-value pairs), represent it as a simple JSON OBJECT within the list. Avoid overly complex or deeply nested objects here. The goal is to capture the miscellaneous data faithfully but simply.
-    *   Keep each item (string or object) concise.
+    *   Populate this as a LIST of sections. Extract any sections from the resume that does not fit into other structured JSON objects.
 
 3.  **Resume Analysis (`analysis` field):**
     *   Provide a brief (2-3 sentences) textual analysis of the original resume.
@@ -147,24 +159,42 @@ The output MUST be a SINGLE VALID JSON object with the following structure:
     return prompt
 
 
+def _build_contact_extraction_prompt(text_snippet: str) -> str:
+    """Constructs a prompt for Gemini to extract contact details from a text snippet."""
+
+    prompt = f"""Analyze the following text snippet and extract contact information.
+Return ONLY a single, valid JSON object matching the structure below.
+Ensure all specified keys (first_name, last_name, email, phone) are present in your JSON response.
+If a value for a key is not found in the text, use an empty string "" for that key.
+
+Input text:
+---
+{text_snippet}
+---
+"""
+    return prompt
+
+
 def _call_gemini_api(
     prompt: str,
     resume_part: types.Part,
-    model_name: str = "gemini-2.5-pro-preview-05-06",
+    model_name: str = "gemini-2.5-pro-preview-05-06",  # Corrected model name, ensure it is valid
 ) -> types.GenerateContentResponse | None:
     """Submits the prompt and resume data to the Gemini API and returns the response."""
     try:
-        # Call the Gemini API to generate content based on the prompt and resume part.
-        print(f"Calling Gemini model ({model_name}) to process file content...")
-        response = client.models.generate_content(
-            model=f"models/{model_name}",
+        logger.info(
+            f"Calling Gemini model ({model_name}) to process file content..."
+        )  # Use logger
+        response = client.models.generate_content(  # Corrected: client.generate_content for some SDK versions or client.models.generate_content
+            model=f"models/{model_name}",  # Ensure 'models/' prefix is correct for your SDK version
             contents=[prompt, resume_part],
         )
-        print("Gemini API response received.")
+        logger.info("Gemini API response received.")  # Use logger
         return response
     except Exception as e:
-        # Log any errors during the API call.
-        print(f"ERROR during Gemini API call: {type(e).__name__} - {e}")
+        logger.error(
+            f"ERROR during Gemini API call: {type(e).__name__} - {e}"
+        )  # Use logger
         return None
 
 
@@ -173,11 +203,10 @@ def _process_gemini_response(
 ) -> dict | None:
     """Parses the Gemini API's response, expecting a JSON string, into a Python dictionary."""
     if response is None:
-        print("Cannot process None response from Gemini API.")
+        logger.error("Cannot process None response from Gemini API.")  # Use logger
         return None
 
-    # Step 1: Check for content blocking from the API.
-    print("Processing AI response...")
+    logger.info("Processing AI response...")  # Use logger
     try:
         if (
             hasattr(response, "prompt_feedback")
@@ -185,46 +214,48 @@ def _process_gemini_response(
             and response.prompt_feedback.block_reason
         ):
             block_reason_str = str(response.prompt_feedback.block_reason)
-            print(f"Processing blocked by API. Reason: {block_reason_str}")
+            logger.warning(
+                f"Processing blocked by API. Reason: {block_reason_str}"
+            )  # Use logger
             return None
     except AttributeError:
-        # This can happen if prompt_feedback itself is missing, which is unusual but handled.
-        print("AttributeError checking prompt_feedback, proceeding...")
+        logger.warning(
+            "AttributeError checking prompt_feedback, proceeding..."
+        )  # Use logger
     except Exception as e:
-        # Catch any other unexpected errors during feedback check.
-        print(f"Unexpected error checking prompt_feedback: {type(e).__name__} - {e}")
-        # Depending on policy, may return None or attempt to proceed if error is non-critical.
+        logger.error(
+            f"Unexpected error checking prompt_feedback: {type(e).__name__} - {e}"
+        )  # Use logger
 
-    # Step 2: Extract the text content from the response.
     generated_text = None
     try:
         if hasattr(response, "text") and response.text:
             generated_text = response.text
-            print("Successfully extracted text using response.text.")
+            logger.info(
+                "Successfully extracted text using response.text."
+            )  # Use logger
         else:
-            # Log if the expected text attribute is missing or empty.
-            print(
-                f"Warning: response.text is missing or empty. Candidates: {getattr(response, 'candidates', 'N/A')}"
+            logger.warning(
+                f"Warning: response.text is missing or empty. Candidates: {getattr(response, 'candidates', 'N/A')}"  # Use logger
             )
             return None
     except ValueError as e:
-        # Handle cases where accessing response.text might raise ValueError (e.g. if it contains non-text data unexpectedly).
-        print(
-            f"ValueError extracting response.text: {e}. Candidates: {getattr(response, 'candidates', 'N/A')}"
+        logger.warning(
+            f"ValueError extracting response.text: {e}. Candidates: {getattr(response, 'candidates', 'N/A')}"  # Use logger
         )
         return None
     except Exception as e:
-        # Catch any other unexpected errors during text extraction.
-        print(f"Unexpected error extracting response text: {type(e).__name__} - {e}")
+        logger.error(
+            f"Unexpected error extracting response text: {type(e).__name__} - {e}"
+        )  # Use logger
         return None
 
     if generated_text is None:
-        # This check is redundant if prior returns are hit, but acts as a safeguard.
-        print("Error: Failed to extract valid text from AI response after checks.")
+        logger.error(
+            "Error: Failed to extract valid text from AI response after checks."
+        )  # Use logger
         return None
 
-    # Step 3: Clean the extracted text to prepare it for JSON parsing.
-    # Remove common markdown code fences and leading/trailing whitespace.
     cleaned_json_string = (
         generated_text.strip()
         .removeprefix("```json")
@@ -234,73 +265,223 @@ def _process_gemini_response(
     )
 
     if not cleaned_json_string:
-        # Log if the string is empty after cleaning, meaning no parsable content.
-        print("Error: Cleaned JSON string is empty after stripping prefixes/suffixes.")
+        logger.error(
+            "Error: Cleaned JSON string is empty after stripping prefixes/suffixes."
+        )  # Use logger
         return None
 
-    # Step 4: Parse the cleaned string into a Python dictionary.
     try:
         parsed_data = json.loads(cleaned_json_string)
-        print("Successfully parsed JSON from AI response.")
+        logger.info("Successfully parsed JSON from AI response.")  # Use logger
         return parsed_data
     except json.JSONDecodeError as e:
-        # Log detailed error if JSON parsing fails.
-        print(f"ERROR parsing AI JSON output: {e}")
-        print("\n--- String Attempted to Parse (first 1000 chars) ---\n")
-        print(cleaned_json_string[:1000])  # Print a snippet for debugging.
+        logger.error(f"ERROR parsing AI JSON output: {e}")  # Use logger
+        logger.error(
+            f"Problematic string (first 500 chars): {cleaned_json_string[:500]}"
+        )  # More context
+        return None
+    except Exception as e:
+        logger.error(
+            f"Unexpected error parsing JSON: {type(e).__name__} - {e}"
+        )  # Use logger
         return None
 
 
-def generate_structured_data_from_file_content(uploaded_file) -> dict | None:
+def generate_structured_data_from_file_content(
+    content_input: Union[UploadedFile, str],
+) -> dict | None:
     """
-    Orchestrates the process of generating structured data from an uploaded file using AI.
-    Reads file content, builds a prompt, calls the AI, and processes the response.
+    Orchestrates the process of generating structured data using AI, accepting either an uploaded file or extracted text.
     """
-    # Step 1: Validate AI client configuration and input file.
     if not GENAI_CONFIGURED or client is None:
-        print("Error: AI Client not configured for processing. Cannot proceed.")
+        logger.error("Error: AI Client not configured for processing. Cannot proceed.")
         return None
-    if not uploaded_file:
-        print("Error: No file provided for processing. Cannot proceed.")
+    if not content_input:
+        logger.error(
+            "Error: No content (file or text) provided for AI processing. Cannot proceed."
+        )
         return None
 
-    print(
-        f"Processing file for AI structuring: {uploaded_file.name} ({uploaded_file.content_type})"
-    )
-
-    # Step 2: Read file content into bytes.
+    resume_part = None
     try:
-        file_content_bytes = uploaded_file.read()
-        if not file_content_bytes:
-            print("Error: Uploaded file content is empty.")
+        if isinstance(content_input, str):
+            logger.info(
+                f"Main AI processing received extracted text ({len(content_input)} chars)."
+            )
+            if not content_input.strip():
+                logger.warning(
+                    "Provided text content for main AI is empty or whitespace."
+                )
+                return None
+            resume_part = types.Part(text=content_input)
+            logger.info("Created genai.types.Part from extracted text for main AI.")
+        elif isinstance(content_input, UploadedFile):
+            logger.info(
+                f"Main AI processing received file: {content_input.name} ({getattr(content_input, 'content_type', 'N/A')})"
+            )
+            content_input.seek(0)  # Ensure file pointer is at the beginning
+            file_content_bytes = content_input.read()
+            content_input.seek(0)  # Reset pointer if it might be read again elsewhere
+            if not file_content_bytes:
+                logger.warning("Uploaded file content for main AI is empty.")
+                return None
+
+            mime_type = getattr(
+                content_input, "content_type", "application/octet-stream"
+            )
+            if not mime_type:  # Fallback if content_type is empty or None
+                mime_type = "application/octet-stream"
+
+            resume_part = types.Part.from_bytes(
+                data=file_content_bytes,
+                mime_type=mime_type,
+            )
+            logger.info("Created genai.types.Part from file bytes for main AI.")
+        else:
+            logger.error(
+                f"Invalid input type for main AI processing: {type(content_input)}. Expected UploadedFile or str."
+            )
             return None
     except Exception as e:
-        print(f"Error reading uploaded file content: {type(e).__name__} - {e}")
-        return None
-
-    # Step 3: Create a genai.types.Part object from the file bytes for multimodal input.
-    try:
-        resume_part = types.Part.from_bytes(
-            data=file_content_bytes,
-            mime_type=uploaded_file.content_type,
+        logger.error(
+            f"Error preparing content for main AI (creating Part): {type(e).__name__} - {e}"
         )
-        print("Created genai.types.Part from file bytes.")
-    except Exception as e:
-        print(f"Error creating genai.types.Part: {type(e).__name__} - {e}")
         return None
 
-    # Step 4: Build the detailed prompt for the AI.
+    if not resume_part:
+        logger.error("Resume part for AI processing could not be created.")
+        return None
+
     prompt = _build_gemini_extraction_prompt()
-
-    # Step 5: Call the Gemini API with the prompt and file data.
     api_response = _call_gemini_api(prompt=prompt, resume_part=resume_part)
-
-    # Step 6: Process the API response to get structured data.
     structured_data = _process_gemini_response(api_response)
 
     if structured_data:
-        print("Successfully generated structured data from file content.")
+        logger.info("Successfully generated structured data from main AI processing.")
     else:
-        print("Failed to generate structured data from file content.")
-
+        logger.error("Failed to generate structured data from main AI processing.")
     return structured_data
+
+
+def extract_text_from_uploaded_file(uploaded_file: UploadedFile) -> str | None:
+    """
+    Extracts text content from an uploaded file (Django UploadedFile object).
+    Supports .txt, .pdf, .doc, .docx using textract.
+    Returns the extracted text as a string, or None if extraction fails.
+    """
+    filename = uploaded_file.name
+    logger.info(f"Attempting to extract text from file: {filename}")
+
+    try:
+        # Ensure stream is at the beginning for all reads
+        uploaded_file.seek(0)
+
+        if filename.lower().endswith(".txt"):
+            logger.debug(f"Processing {filename} as a .txt file.")
+            try:
+                return uploaded_file.read().decode("utf-8")
+            except UnicodeDecodeError:
+                logger.warning(f"UnicodeDecodeError for {filename}, trying latin-1.")
+                uploaded_file.seek(0)  # Reset stream before re-reading
+                return uploaded_file.read().decode("latin-1")
+            except Exception as e_txt:  # More specific exception variable
+                logger.error(f"Error reading .txt file {filename}: {e_txt}")
+                return None
+
+        logger.debug(f"Processing {filename} with textract.")
+        # For textract, write to a temporary file as it typically expects a file path
+        with tempfile.NamedTemporaryFile(
+            delete=False, suffix=os.path.splitext(filename)[1]
+        ) as tmp_file:
+            uploaded_file.seek(0)  # Ensure reading from start for temp file
+            for chunk in uploaded_file.chunks():
+                tmp_file.write(chunk)
+            tmp_file_path = tmp_file.name
+
+        try:
+            byte_content = textract.process(tmp_file_path)
+            text_content = byte_content.decode("utf-8", errors="replace")
+            logger.info(f"Successfully extracted text from {filename} using textract.")
+            return text_content
+        finally:
+            os.remove(tmp_file_path)  # Ensure temporary file is always cleaned up
+
+    except textract.exceptions.ExtensionNotSupported:
+        logger.warning(
+            f"textract does not support extension for file: {filename}. No fallback attempted."
+        )
+        return None
+    except textract.exceptions.ShellError as se:
+        logger.error(
+            f"textract shell error for {filename}. Command: '{se.command}', Exit Code: {se.exit_code}, Stdout: '{se.stdout}', Stderr: '{se.stderr}'"
+        )
+        logger.error(
+            "This often means a required system utility (e.g., pdftotext, antiword) is not installed or not in PATH."
+        )
+        return None
+    except (
+        Exception
+    ) as e:  # General catch-all for other issues (e.g., tempfile errors, unexpected textract issues)
+        logger.error(
+            f"Error during text extraction for {filename}: {type(e).__name__} - {e}"
+        )
+        return None
+
+
+def extract_contact_details_from_text_snippet(
+    text_snippet_100_chars: str,
+) -> dict | None:
+    """
+    Extracts contact details (first_name, last_name, email, phone) from a short text snippet
+    using the Gemini API.
+    """
+    if not GENAI_CONFIGURED or client is None:
+        logger.error("AI Client not configured. Cannot extract contact details.")
+        return None
+
+    if not text_snippet_100_chars or not text_snippet_100_chars.strip():
+        logger.warning("Text snippet for contact extraction is empty or whitespace.")
+        return None  # Or return dict with empty strings if that's preferred for empty input
+
+    logger.info(
+        f"Attempting to extract contact details from snippet: '{text_snippet_100_chars[:50]}...'"
+    )
+
+    prompt = _build_contact_extraction_prompt(text_snippet_100_chars)
+
+    try:
+        # Create a genai.types.Part object from the text snippet.
+        text_part = types.Part(text=text_snippet_100_chars)
+    except Exception as e:
+        logger.error(
+            f"Error creating types.Part from text snippet: {type(e).__name__} - {e}"
+        )
+        return None
+
+    # Call the Gemini API - using a potentially different model or same one
+    # For consistency, we use the same _call_gemini_api, which has a default model.
+    # You might want to specify a different, possibly faster/cheaper model for this specific task.
+    api_response = _call_gemini_api(prompt=prompt, resume_part=text_part)
+
+    contact_details = _process_gemini_response(api_response)
+
+    if contact_details:
+        # Basic validation for expected keys, even if values are empty strings
+        expected_keys = ["first_name", "last_name", "email", "phone"]
+        if all(key in contact_details for key in expected_keys):
+            logger.info(f"Successfully extracted contact details: {contact_details}")
+            return contact_details
+        else:
+            logger.error(
+                f"Extracted contact details JSON is missing one or more expected keys. Data: {contact_details}"
+            )
+            # You might want to return a dict with empty strings for missing keys here to guarantee structure
+            # For now, returning None as the structure is not as expected.
+            # Example of ensuring structure:
+            # validated_details = {key: contact_details.get(key, "") for key in expected_keys}
+            # logger.info(f"Partially extracted/validated contact details: {validated_details}")
+            # return validated_details
+            return None
+    else:
+        logger.error("Failed to extract or parse contact details from the snippet.")
+        return None
