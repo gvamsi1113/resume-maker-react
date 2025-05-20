@@ -65,7 +65,7 @@ export function useFileUpload(
         if (fileInput) fileInput.value = '';
         // Consider if reload is still desired or if resetting state is enough
         if (typeof window !== 'undefined') {
-            // window.location.reload();
+            window.location.reload();
         }
     };
 
@@ -128,6 +128,9 @@ export function useFileUpload(
             setFile(null);
             setIsDraggingOver(false);
             mutation.reset();
+            if (typeof window !== 'undefined') {
+                window.location.reload();
+            }
         }
     };
 } 
