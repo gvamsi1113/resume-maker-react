@@ -64,6 +64,7 @@ export function UploadFlow({
                     }
                     isWaitingForCaptcha={showCaptcha && !!tokenState.captchaChallenge}
                     captchaSubmitted={!showCaptcha && !!tokenState.token}
+                    isSuccess={isSuccess}
                 />
                 {showCaptcha && tokenState.captchaChallenge && (
                     <CaptchaChallenge

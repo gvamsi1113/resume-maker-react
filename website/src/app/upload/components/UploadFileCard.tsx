@@ -13,6 +13,7 @@ interface UploadFileCardProps {
     };
     isWaitingForCaptcha: boolean;
     captchaSubmitted: boolean;
+    isSuccess: boolean;
 }
 
 function getFileIcon(type: string, name: string) {
@@ -28,7 +29,7 @@ function getFileIcon(type: string, name: string) {
 /**
  * Card to show uploading file info, progress, and cancel button
  */
-export function UploadFileCard({ file, progress, onCancel, error, isWaitingForCaptcha, captchaSubmitted }: UploadFileCardProps) {
+export function UploadFileCard({ file, progress, onCancel, error, isWaitingForCaptcha, captchaSubmitted, isSuccess }: UploadFileCardProps) {
     const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
     const fileType = file.name.split('.').pop()?.toUpperCase() || file.type || 'FILE';
 
@@ -49,12 +50,19 @@ export function UploadFileCard({ file, progress, onCancel, error, isWaitingForCa
                     onClick={onCancel}
                     className="ml-auto flex items-center justify-center p-2 rounded-full hover:bg-[var(--color-gray-medium)]/20 transition-colors cursor-pointer"
                     aria-label="Cancel upload and select a different file"
+                    disabled={isSuccess}
                 >
                     <RefreshCw size={20} className="text-[var(--color-gray-light)]" />
                 </button>
             </div>
             <div className="flex flex-row justify-between items-center w-full">
-                <UploadProgress progress={progress} error={error} isWaitingForCaptcha={isWaitingForCaptcha} isSuccess={false} captchaSubmitted={captchaSubmitted} />
+                <UploadProgress 
+                    progress={progress} 
+                    error={error} 
+                    isWaitingForCaptcha={isWaitingForCaptcha} 
+                    isSuccess={isSuccess}
+                    captchaSubmitted={captchaSubmitted} 
+                />
             </div>
         </BentoBox>
     );

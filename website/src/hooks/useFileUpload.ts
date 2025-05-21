@@ -29,7 +29,7 @@ export function useFileUpload(
             return processResume({ file: processedFile, tokenState });
         },
         onSuccess: (data) => {
-            setFile(null); // Clear the file on success
+            // setFile(null); // Temporarily commented out to prevent UI flicker
             if (onUploadSuccess) onUploadSuccess(data);
             // Example: Trigger navigation or further actions
             // router.push(`/resume/${data.id}`); 
