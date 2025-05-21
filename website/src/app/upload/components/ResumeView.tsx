@@ -305,23 +305,34 @@ const ResumeDocument: React.FC<{ resume: EnhancedResumeData }> = ({ resume }) =>
                     </View>
                 )}
 
-                {/* Other Extracted Data */}
+                {/* Other Extracted Data / Achievements */}
                 {resume.other_extracted_data && Array.isArray(resume.other_extracted_data) && resume.other_extracted_data.length > 0 && (
-                    <>
-                        {resume.other_extracted_data.map((item: { section_title: string; content: string[] }, index: number) => (
-                            item.section_title && item.content && item.content.length > 0 ? (
-                                <View key={index} style={styles.section} wrap={false}>
-                                    <Text style={styles.sectionTitle}>{item.section_title}</Text>
-                                    {item.content.map((line: string, lineIndex: number) => (
-                                        <View key={lineIndex} style={styles.listItem}>
-                                            <Text>•</Text>
-                                            <Text style={styles.listItemText}>{line}</Text>
-                                        </View>
-                                    ))}
-                                </View>
-                            ) : null
+                    <View style={styles.section} wrap={false}>
+                        {/* Attempt to find a common title or use a generic one */}
+                        {/* This part is speculative as the structure isn't uniform for section_title */}
+                        <Text style={styles.sectionTitle}>Additional Information</Text>
+                        {resume.other_extracted_data.map((item: any, index: number) => (
+                            <View key={index} style={styles.listItem}>
+                                <Text>•</Text>
+                                {item.achievement && (
+                                    <Text style={styles.listItemText}>{item.achievement}</Text>
+                                )}
+                                {item.section_title && item.content && Array.isArray(item.content) && (
+                                    // If it has section_title and content, render that (though data suggests this isn't the case)
+                                    <View style={{ marginLeft: 5, flex: 1 }}>{/* Added View for proper structure if this path is taken */}
+                                        <Text style={styles.skillCategoryTitle}>{item.section_title}</Text>
+                                        {item.content.map((line: string, lineIndex: number) => (
+                                            <Text key={lineIndex} style={styles.listItemText}>{line}</Text>
+                                        ))}
+                                    </View>
+                                )}
+                                {/* Fallback for other unexpected structures, ensuring text is wrapped */}
+                                {!(item.achievement || (item.section_title && item.content)) && typeof item === 'string' && (
+                                    <Text style={styles.listItemText}>{item}</Text>
+                                )}
+                            </View>
                         ))}
-                    </>
+                    </View>
                 )}
 
             </Page>

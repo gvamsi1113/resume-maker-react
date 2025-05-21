@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css"; // This imports Inter and other global styles
-import Providers from "./providers"; // Import the new Providers component
+import { ResumeDataProvider } from "@/context/ResumeDataContext"; // Added import
+import Providers from "./providers"; // Added import
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Rezoome - AI Resume Tailoring for each JD",
@@ -17,9 +21,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">
-        <Providers>
-          {children}
+      <body className={inter.className}>
+        <Providers> {/* Wrapped children with Providers */}
+          <ResumeDataProvider> {/* Wrapped children with provider */}
+            {children}
+          </ResumeDataProvider>
         </Providers>
       </body>
     </html>
