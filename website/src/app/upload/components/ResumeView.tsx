@@ -21,35 +21,34 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         backgroundColor: '#FFFFFF',
         padding: 30,
-        // fontFamily: 'Roboto', // Use registered font
         fontSize: 10,
-        lineHeight: 1.3, // Slightly reduced line height for compactness
-        textAlign: 'justify', // Justify text globally
+        lineHeight: 1.3,
+        textAlign: 'justify',
     },
     header: {
         textAlign: 'center',
-        marginBottom: 10, // Reduced space
+        marginBottom: 10,
     },
     name: {
         fontSize: 24,
         fontWeight: 'bold',
-        marginBottom: 15, // Increased space
+        marginBottom: 15,
     },
     contactRow: {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
         flexWrap: 'wrap',
-        marginTop: 2, // Reduced space
+        marginTop: 2,
     },
     contactInfoItem: {
         fontSize: 9,
         color: 'grey',
-        marginHorizontal: 4, // Slightly reduced space
+        marginHorizontal: 4,
     },
     contactInfo: {
         fontSize: 9,
-        marginBottom: 1, // Reduced space
+        marginBottom: 1,
         color: 'grey',
     },
     contactLink: {
@@ -57,7 +56,7 @@ const styles = StyleSheet.create({
         textDecoration: 'underline',
     },
     section: {
-        marginBottom: 5, // Reduced space
+        marginBottom: 5,
     },
     sectionTitle: {
         fontSize: 12,
@@ -69,27 +68,23 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
     subsection: {
-        marginBottom: 4, // Reduced space
+        marginBottom: 4,
     },
-    jobTitleAndDatesRow: { // New style for the row containing job title and dates
+    jobTitleAndDatesRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center', // Ensuring this is 'center' for vertical centering
-        marginBottom: 1, // Minimal space before company name
+        alignItems: 'center',
+        marginBottom: 1,
     },
-    jobTitleWrapper: { // New style for the View wrapping the job title Text
-        flex: 1, // Takes available space
-        marginRight: 10, // Space between job title and dates
-        // justifyContent: 'center', // If needed for text within this wrapper
+    jobTitleWrapper: {
+        flex: 1,
+        marginRight: 10,
     },
     jobTitle: {
         fontSize: 11,
         fontWeight: 'bold',
-        // flex: 1 and marginRight moved to jobTitleWrapper
     },
-    datesWrapper: { // New style for the View wrapping the dates Text
-        // This View helps in making the dates part a clear flex item for alignment.
-        // justifyContent: 'center', // If needed for text within this wrapper
+    datesWrapper: {
     },
     company: {
         fontSize: 10,
@@ -97,36 +92,32 @@ const styles = StyleSheet.create({
     },
     dates: {
         fontSize: 9,
-        color: '#333333',
-        textAlign: 'right', // Ensure dates are right-aligned within their own text box
+        textAlign: 'right',
+        fontWeight: 'bold',
     },
     listItem: {
-        flexDirection: 'row', // For bullet alignment
-        marginBottom: 1.5, // Adjusted for consistent line/bullet spacing
+        flexDirection: 'row',
+        marginBottom: 1.5,
     },
-    listItemText: { // New style for the text part of the list item
-        flex: 1, // Allow text to wrap
-        marginLeft: 5, // Indent text from bullet
+    listItemText: {
+        flex: 1,
+        marginLeft: 5,
     },
     skillsContainer: {
-        // No specific container styles needed for new layout
     },
     skillCategory: {
-        // Removed flex properties, this View is now just for margin between skill lines
         marginBottom: 3,
     },
     skillCategoryTitle: {
         fontWeight: 'bold',
         fontSize: 10,
-        // marginRight: 5, // Removed, as it's part of the same Text flow
     },
     skillListText: {
         fontSize: 9.5,
-        // flex: 1, // Removed, no longer a flex item
-        lineHeight: 1.4, // Adjusted for better readability if text wraps
+        lineHeight: 1.4,
     },
     paragraph: {
-        marginBottom: 5, // Ensure summary also has some bottom margin if needed
+        marginBottom: 5,
     },
 });
 
@@ -158,10 +149,35 @@ const ContactLinkItem = ({ value, isEmail = false }: { value?: string, isEmail?:
     );
 };
 
+// Define a more specific type for items in the 'otherData' array
+type OtherInfoItem =
+    | { achievement: string; section_title?: undefined; content?: undefined; } // Explicitly make other fields undefined
+    | { achievement?: undefined; section_title: string; content: string[]; }   // Explicitly make other fields undefined
+    | string;
 
 // The PDF Document Component
 const ResumeDocument: React.FC<{ resume: EnhancedResumeData }> = ({ resume }) => {
     const fullName = `${resume.first_name || ''} ${resume.last_name || ''}`.trim();
+
+    // Create an array to hold contact elements
+    const contactElements: React.JSX.Element[] = [];
+    if (resume.email) {
+        contactElements.push(<ContactLinkItem key="email" value={resume.email} isEmail />);
+    }
+    if (resume.phone) {
+        contactElements.push(<Text key="phone" style={styles.contactInfoItem}>{resume.phone}</Text>);
+    }
+    if (resume.location) {
+        contactElements.push(<Text key="location" style={styles.contactInfoItem}>{resume.location}</Text>);
+    }
+    if (resume.socials) {
+        resume.socials.forEach((social: SocialLink, index: number) => {
+            if (social.url) { // Ensure URL exists before adding
+                contactElements.push(<ContactLinkItem key={`social-${index}`} value={social.url} />);
+            }
+        });
+    }
+
     return (
         <Document title={fullName ? `${fullName} - Resume` : 'Resume'}>
             <Page size="A4" style={styles.page}>
@@ -169,11 +185,13 @@ const ResumeDocument: React.FC<{ resume: EnhancedResumeData }> = ({ resume }) =>
                 <View style={styles.header}>
                     {fullName && <Text style={styles.name}>{fullName}</Text>}
                     <View style={styles.contactRow}>
-                        {resume.email && <ContactLinkItem value={resume.email} isEmail />}
-                        {resume.phone && <Text style={styles.contactInfoItem}>{resume.phone}</Text>}
-                        {resume.location && <Text style={styles.contactInfoItem}>{resume.location}</Text>}
-                        {resume.socials && resume.socials.map((social: SocialLink, index: number) => (
-                            <ContactLinkItem key={index} value={social.url} />
+                        {contactElements.map((element, index) => (
+                            <React.Fragment key={index}>
+                                {element}
+                                {index < contactElements.length - 1 && (
+                                    <Text style={styles.contactInfoItem}> | </Text>
+                                )}
+                            </React.Fragment>
                         ))}
                     </View>
                 </View>

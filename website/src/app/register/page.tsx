@@ -27,13 +27,10 @@ export default function RegisterPage() {
                     splitConfig={{ direction: 'horizontal', fractions: [1, 1] }}
                     className="max-w-6xl w-full" // Wider container for side-by-side view
                 >
-                    {/* Column 1: Registration Form */}
+
+                    <ResumeView resumeData={resumeData} />
                     <RegistrationForm />
 
-                    {/* Column 2: Resume View with its own BentoBox for consistent styling */}
-                    <BentoBox className="flex flex-col p-[1rem] md:p-8 gap-5 w-full h-full !items-stretch !text-left overflow-y-auto">
-                        <ResumeView resumeData={resumeData} />
-                    </BentoBox>
                 </BentoBox>
             ) : (
                 // If no resume data, show only the registration form (centered by PageLayout)

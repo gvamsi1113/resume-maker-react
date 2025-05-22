@@ -33,7 +33,7 @@ export default function RegistrationForm() {
                         id="email"
                         type="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                         placeholder="you@example.com"
                         required
                         className="mt-1 w-full"
@@ -45,7 +45,7 @@ export default function RegistrationForm() {
                         id="password"
                         type="password"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                         placeholder="••••••••"
                         required
                         className="mt-1 w-full"
@@ -57,7 +57,7 @@ export default function RegistrationForm() {
                         id="confirm-password"
                         type="password"
                         value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
                         placeholder="••••••••"
                         required
                         className="mt-1 w-full"

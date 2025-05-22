@@ -2,12 +2,13 @@ import React from 'react';
 import { LargeText, SmallText } from '@/components/ui/Typography';
 
 /**
- * Component for the upload page header
- * @returns {JSX.Element} The header component
+ * @component UploadHeader
+ * @description Displays the main header for the resume upload page, including a title and a subtitle.
+ * @returns {React.ReactElement} The header component.
  */
-export function UploadHeader() {
+export function UploadHeader(): React.ReactElement {
     return (
-        <div className="flex flex-col gap-[1rem] py-[1rem]">
+        <div className="flex flex-col gap-4 py-4">
             <LargeText fontSizeClass='text-[2rem]'>Upload Resume</LargeText>
             <SmallText>
                 Upload your current resume and we'll make it perfect.

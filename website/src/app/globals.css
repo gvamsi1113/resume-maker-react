@@ -63,8 +63,8 @@
   /* Bento Box Specific */
   --color-bento-cta-shadow-outer: rgba(70, 70, 70, 1);
   --color-bento-cta-shadow-inner: rgba(0, 0, 0, 0.6);
-  --color-glass-background: rgba(0, 0, 0, 0.5);
-  --color-glass-border: rgba(45, 71, 127, 0.3);
+  --color-glass-background: rgba(12, 15, 28, 0.5);
+  --color-glass-border: rgba(56, 85, 150, 0.3);
 }
 
 

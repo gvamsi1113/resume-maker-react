@@ -11,6 +11,17 @@ import { useCaptchaFlow } from '@/hooks/useCaptchaFlow';
 import { useResumeData } from '@/context/ResumeDataContext';
 import PageLayout from '@/components/layout/PageLayout';
 
+const REDIRECT_DELAY_MS = 2000;
+
+/**
+ * @file Page component for uploading resume files.
+ * @description This page allows users to upload their resume. It handles file selection via
+ * drag-and-drop or a file input, manages the upload process including potential
+ * captcha verification, and redirects the user to the registration page upon successful upload.
+ * It leverages custom hooks for managing file state, API token interactions, and captcha flow.
+ * @returns {JSX.Element} The UploadPage component.
+ */
+
 /**
  * Main component for handling file uploads with drag and drop functionality
  * @returns {JSX.Element} The upload page component
@@ -58,16 +69,26 @@ export default function UploadPage() {
             const timer = setTimeout(() => {
                 console.log('Redirecting now to /register');
                 router.push('/register');
-            }, 2000);
+            }, REDIRECT_DELAY_MS);
 
             return () => clearTimeout(timer);
         }
     }, [isSuccess, responseData, router, setResumeData]);
 
+    /**
+     * Callback triggered when the internal submission process of `UploadFlow` completes.
+     * @remarks Currently logs the success status and response data availability.
+     * This could be used for further actions post-submission if needed.
+     */
     const handleSubmit = useCallback(() => {
         console.log('UploadFlow internal submission completed. isSuccess:', isSuccess, 'Has responseData:', !!responseData);
     }, [isSuccess, responseData]);
 
+    /**
+     * Callback for submitting the captcha answer.
+     * Validates the captcha and starts the upload if a file is pending.
+     * @param {string} answer - The user's answer to the captcha.
+     */
     const onCaptchaSubmit = useCallback((answer: string) => {
         validateCaptcha(answer);
         if (pendingFile) {
@@ -75,14 +96,19 @@ export default function UploadPage() {
         }
     }, [validateCaptcha, pendingFile, startUpload]);
 
+    /**
+     * Handles the cancellation of the upload process.
+     * Resets the file upload state and clears any existing resume data in the context.
+     */
     const handleCancel = () => {
         originalHandleCancel();
+        resetFileUpload();
         setResumeData(null);
     };
 
     return (
         <PageLayout>
-            <BentoBox className="flex flex-col p-[1rem] md:p-8 gap-5 max-w-lg w-full !items-stretch !text-left transition-all duration-1000 ease-out transition-[height,transform]">
+            <BentoBox className="flex flex-col p-[1rem] pb-[1.1rem] md:p-[2rem] md:pb-[2.2rem] gap-5 max-w-lg w-full !items-stretch !text-left transition-all duration-1000 ease-out transition-[height,transform] rounded-[2.5rem]">
                 <UploadHeader />
                 <UploadFlow
                     file={file}
