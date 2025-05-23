@@ -20,21 +20,24 @@ export default function RegisterPage() {
         console.log('RegisterPage - resumeData from context:', resumeData);
     }, [resumeData]);
 
+    const enhancedData = resumeData?.enhanced_resume_data;
+
     return (
         <PageLayout> {/* Used PageLayout component */}
-            {resumeData ? (
+            {enhancedData ? (
                 <BentoBox
-                    splitConfig={{ direction: 'horizontal', fractions: [1, 1] }}
-                    className="max-w-6xl w-full" // Wider container for side-by-side view
+                    splitConfig={{ direction: 'horizontal', fractions: [2, 1] }}
+                    className="w-full my-auto h-full"
                 >
-
-                    <ResumeView resumeData={resumeData} />
-                    <RegistrationForm />
+                    <div className="h-full overflow-y-auto">
+                        <ResumeView resumeData={resumeData} />
+                    </div>
+                    <RegistrationForm resumeData={enhancedData} />
 
                 </BentoBox>
             ) : (
                 // If no resume data, show only the registration form (centered by PageLayout)
-                <RegistrationForm />
+                <RegistrationForm /> // Pass nothing if no enhancedData
             )}
         </PageLayout>
     );

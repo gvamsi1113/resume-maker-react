@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Page, Text, View, Document, StyleSheet, Font, Link, PDFDownloadLink } from '@react-pdf/renderer';
+import { Page, Text, View, Document, StyleSheet, Font, Link, PDFDownloadLink, PDFViewer } from '@react-pdf/renderer';
 import { type ResumeResponse, type EnhancedResumeData, type WorkExperience, type EducationEntry, type SkillCategory, type ProjectEntry, type CertificateEntry, type SocialLink } from '@/types/resume';
+import BentoBox from '@/components/ui/BentoBox';
 
 // Register a common font (optional, but good for consistency)
 // Ensure you have font files in your public directory, e.g., public/fonts/
@@ -374,34 +375,26 @@ const ResumeView: React.FC<ResumeViewProps> = ({ resumeData }) => {
         : 'resume.pdf';
 
     return (
-        <div className="p-4 md:p-8">
-            <h2 className="text-2xl font-bold mb-4 text-white">Generated Resume Preview</h2>
-            <p className="mb-6 text-gray-300">
-                Review the generated PDF below. You can download it using the link.
-                This is a preliminary version based on the structured data extracted by the AI.
-            </p>
-
-            <PDFDownloadLink
-                document={<ResumeDocument resume={structuredData} />}
-                fileName={fileName}
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-150 ease-in-out inline-block mb-6"
-            >
-                {({ loading }) => (loading ? 'Generating PDF...' : 'Download PDF')}
-            </PDFDownloadLink>
-
-            {/* Placeholder for the Registration Form - to be added next */}
-            <div className="mt-8 p-6 bg-gray-800 rounded-lg shadow-xl">
-                <h3 className="text-xl font-semibold mb-4 text-white">Next Steps: Register Your Profile</h3>
-                <p className="text-gray-400 mb-4">
-                    If you are happy with the resume, you can proceed to register.
-                    Your details (Name, Email, Phone) will be pre-filled.
-                </p>
-                {/* Registration form component will go here */}
-                <div className="text-center text-gray-500 italic">
-                    Registration form will appear here.
+        <BentoBox className="flex flex-col p-0 items-center justify-center w-full h-full">
+            {/* New relative container for PDF and Download Button */}
+            <div className="relative w-full h-full">
+                <div className="w-full h-full overflow-hidden border border-gray-700 rounded-md bg-white">
+                    {typeof window !== 'undefined' && (
+                        <PDFViewer width="100%" height="100%" style={{ border: 'none' }}>
+                            <ResumeDocument resume={structuredData} />
+                        </PDFViewer>
+                    )}
                 </div>
+
+                <PDFDownloadLink
+                    document={<ResumeDocument resume={structuredData} />}
+                    fileName={fileName}
+                    className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition-colors duration-150 ease-in-out"
+                >
+                    {({ loading }) => (loading ? 'Generating PDF...' : 'Download PDF')}
+                </PDFDownloadLink>
             </div>
-        </div>
+        </BentoBox>
     );
 };
 
