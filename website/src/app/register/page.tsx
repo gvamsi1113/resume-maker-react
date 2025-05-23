@@ -27,7 +27,7 @@ export default function RegisterPage() {
             {enhancedData ? (
                 <BentoBox
                     splitConfig={{ direction: 'horizontal', fractions: [2, 1] }}
-                    className="w-full my-auto h-full"
+                    className="w-full my-auto h-full rounded-none"
                 >
                     <div className="h-full overflow-y-auto">
                         <ResumeView resumeData={resumeData} />
