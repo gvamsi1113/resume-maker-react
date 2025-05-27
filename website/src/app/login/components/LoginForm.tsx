@@ -72,10 +72,37 @@ export default function LoginForm() {
             }, 1000);
 
         } catch (err: any) {
-            console.error('Login failed:', err);
-            const errorMessage = err.data?.detail || err.message || 'Login failed. Please check your credentials and try again.';
+            console.error('Login failed (raw error object):', err);
+            // Default generic error message
+            let errorMessage = 'Invalid email or password. Please try again.';
+
+            if (err.data && typeof err.data.detail === 'string') {
+                // Attempt to extract specific message from string like: "{'non_field_errors': [ErrorDetail(string='Message here', code='auth')]}"
+                const match = err.data.detail.match(/ErrorDetail\(string='([^']*)'/);
+                if (match && match[1]) {
+                    errorMessage = match[1]; // Use the specific message from backend
+                }
+                // If regex doesn't match, we stick with the generic errorMessage set above,
+                // as err.data.detail itself would be the verbose string.
+            } else if (err.data && err.data.detail && typeof err.data.detail === 'object') {
+                // Fallback for cases where err.data.detail might be an object (less likely now)
+                if (err.data.detail.non_field_errors && Array.isArray(err.data.detail.non_field_errors) && err.data.detail.non_field_errors.length > 0) {
+                    const errorDetailEntry = err.data.detail.non_field_errors[0];
+                    if (typeof errorDetailEntry === 'object' && errorDetailEntry !== null && 'string' in errorDetailEntry) {
+                        errorMessage = errorDetailEntry.string;
+                    } else if (typeof errorDetailEntry === 'string') {
+                        errorMessage = errorDetailEntry;
+                    }
+                } else if (typeof err.data.detail === 'string') {
+                    errorMessage = err.data.detail; // Should be caught by the first if, but as a safe fallback.
+                }
+            } else if (err.message && typeof err.message === 'string' && !err.message.toLowerCase().includes('fetch')) {
+                // Use err.message if it's not a generic fetch error and more specific
+                errorMessage = err.message;
+            }
+
+            console.error('Processed error message to display:', errorMessage);
             setError(errorMessage);
-            // alert(errorMessage); // Using a state for error message is better for UI
         }
     };
 
@@ -98,7 +125,7 @@ export default function LoginForm() {
             </div>
 
             {error && (
-                <SmallText className="text-center text-red-500 bg-red-100 p-2 rounded-md">
+                <SmallText className="text-center text-red-500">
                     {error}
                 </SmallText>
             )}
