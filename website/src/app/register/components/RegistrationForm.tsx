@@ -1,13 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useRouter } from 'next/navigation';
 import BentoBox from '@/components/ui/BentoBox';
 import { Button } from '@/components/ui/button';
 import FormField from '@/components/ui/FormField';
 import { LargeText, SmallText } from '@/components/ui/Typography';
+import { registerUser } from '@/api/auth';
+import { useAuth } from '@/hooks/useAuth';
 
 // Zod validation schema
 const registrationSchema = z.object({
@@ -37,6 +40,10 @@ interface RegistrationFormProps {
 }
 
 export default function RegistrationForm({ resumeData }: RegistrationFormProps) {
+    const [isSuccess, setIsSuccess] = useState(false);
+    const router = useRouter();
+    const { login } = useAuth();
+
     const {
         register,
         handleSubmit,
@@ -54,13 +61,50 @@ export default function RegistrationForm({ resumeData }: RegistrationFormProps) 
 
     const onSubmit = async (data: FormData) => {
         try {
-            console.log('Registration submitted:', {
+            const response = await registerUser({
                 email: data.email,
                 password: data.password,
+                confirmPassword: data.confirmPassword,
             });
-            alert('Registration successful! Check console for details.');
-        } catch (error) {
+
+            console.log('Registration successful:', response);
+
+            // Use the auth hook to handle login
+            if (response.user && response.tokens && response.tokens.access) {
+                login(response.user, response.tokens);
+            } else {
+                console.error("Registration API response missing user, tokens, or tokens.access:", response);
+                alert("Registration completed, but auto-login failed. Please try logging in manually.");
+                setIsSuccess(false);
+                return;
+            }
+
+            // Show success state
+            setIsSuccess(true);
+
+            // Wait 1 second then redirect to dashboard
+            setTimeout(() => {
+                router.push('/dashboard');
+            }, 1000);
+
+        } catch (error: any) {
             console.error('Registration failed:', error);
+
+            // Handle specific error messages from the backend
+            if (error.data) {
+                const errorData = error.data;
+                if (errorData.email) {
+                    alert(`Email error: ${Array.isArray(errorData.email) ? errorData.email[0] : errorData.email}`);
+                } else if (errorData.password) {
+                    alert(`Password error: ${Array.isArray(errorData.password) ? errorData.password[0] : errorData.password}`);
+                } else if (errorData.confirmPassword) {
+                    alert(`Password confirmation error: ${Array.isArray(errorData.confirmPassword) ? errorData.confirmPassword[0] : errorData.confirmPassword}`);
+                } else {
+                    alert('Registration failed. Please check your information and try again.');
+                }
+            } else {
+                alert('Registration failed. Please check your connection and try again.');
+            }
         }
     };
 
@@ -129,10 +173,10 @@ export default function RegistrationForm({ resumeData }: RegistrationFormProps) 
 
                 <Button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isSuccess}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white mt-6"
                 >
-                    {isSubmitting ? 'Creating Account...' : 'Register'}
+                    {isSuccess ? 'Account created' : isSubmitting ? 'Creating Account...' : 'Register'}
                 </Button>
             </form>
         </BentoBox>

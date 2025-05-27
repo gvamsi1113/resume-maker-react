@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "corsheaders",
 ]
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -41,7 +42,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
 ]
 ROOT_URLCONF = "backend.urls"
 TEMPLATES = [
@@ -112,9 +112,9 @@ REST_FRAMEWORK = {
 # Simple JWT Settings
 SIMPLE_JWT = {
     # How long an access token is valid (e.g., 15 minutes)
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=1),
     # How long a refresh token is valid (e.g., 1 day)
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(minutes=10),
     # Issue a new refresh token when the old one is used (recommended)
     "ROTATE_REFRESH_TOKENS": True,
     # Invalidate the old refresh token after rotation (recommended)
@@ -150,9 +150,15 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # or whatever port your frontend runs on
+    "http://localhost:3000",  # Frontend development server
+    "http://127.0.0.1:3000",
 ]
+
+# For development, allow all origins (remove in production)
+CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "x-demo-token",
 ]
+
+CORS_ALLOW_CREDENTIALS = True  # Allow cookies to be sent with cross-origin requests
