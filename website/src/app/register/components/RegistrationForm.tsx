@@ -1,141 +1,138 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import BentoBox from '@/components/ui/BentoBox';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { EnhancedResumeData } from '@/types/resume';
+import FormField from '@/components/ui/FormField';
 import { LargeText, SmallText } from '@/components/ui/Typography';
 
+// Zod validation schema
+const registrationSchema = z.object({
+    email: z
+        .string()
+        .min(1, 'Email is required')
+        .email('Please enter a valid email address'),
+    password: z
+        .string()
+        .regex(
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,16}$/,
+            'Your password must be between 8 and 16 characters long and include at least one uppercase letter, one lowercase letter, one number, and one symbol'
+        ),
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+    agreeToTerms: z.boolean().refine(val => val === true, {
+        message: 'Please accept the terms and conditions to continue',
+    }),
+}).refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+});
+
+type FormData = z.infer<typeof registrationSchema>;
+
 interface RegistrationFormProps {
-    resumeData?: EnhancedResumeData | null;
+    resumeData?: any;
 }
 
 export default function RegistrationForm({ resumeData }: RegistrationFormProps) {
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
-    const [email, setEmail] = useState('');
-    const [phone, setPhone] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
+    const {
+        register,
+        handleSubmit,
+        formState: { errors, isSubmitting, touchedFields, dirtyFields, isSubmitted },
+    } = useForm<FormData>({
+        resolver: zodResolver(registrationSchema),
+        defaultValues: {
+            email: resumeData?.email || '',
+            password: '',
+            confirmPassword: '',
+            agreeToTerms: false,
+        },
+        mode: 'onTouched', // Validate when field loses focus
+    });
 
-    const firstNameInputRef = useRef<HTMLInputElement>(null);
-    const passwordInputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        if (resumeData) {
-            setFirstName(resumeData.first_name || '');
-            setLastName(resumeData.last_name || '');
-            setEmail(resumeData.email || '');
-            setPhone(resumeData.phone || '');
-            passwordInputRef.current?.focus();
-        } else {
-            firstNameInputRef.current?.focus();
+    const onSubmit = async (data: FormData) => {
+        try {
+            console.log('Registration submitted:', {
+                email: data.email,
+                password: data.password,
+            });
+            alert('Registration successful! Check console for details.');
+        } catch (error) {
+            console.error('Registration failed:', error);
         }
-    }, [resumeData]);
+    };
 
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        if (password !== confirmPassword) {
-            alert("Passwords don't match!");
-            return;
-        }
-        // Handle registration logic here
-        console.log('Registration submitted:', { firstName, lastName, email, password });
-        alert('Registration form submitted! Check the console for details.');
-        // Reset form or redirect after successful registration
+    // Helper function to determine if error should be shown
+    const shouldShowError = (fieldName: keyof FormData) => {
+        const hasError = errors[fieldName];
+        const isTouched = touchedFields[fieldName];
+        const isDirty = dirtyFields[fieldName];
+
+        // Show error if form was submitted OR (field is dirty AND touched)
+        return hasError && (isSubmitted || (isDirty && isTouched));
     };
 
     return (
         <BentoBox className="flex flex-col p-6 md:p-8 gap-6 max-w-md w-full !items-stretch !text-left bg-black h-full">
             <div>
-                <LargeText
-                    className={`text-[2rem] ${resumeData ? 'text-left' : 'text-center'}`}>
+                <LargeText className="text-[2rem] text-center">
                     Create Account
                 </LargeText>
-                <SmallText
-                    className={`${resumeData ? 'text-left' : 'text-center'}`}>
+                <SmallText className="text-center">
                     Please fill your details to <span className="text-gray-600">Register for Free</span>.
                 </SmallText>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input
-                        id="firstName"
-                        type="text"
-                        value={firstName}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFirstName(e.target.value)}
-                        placeholder="John"
-                        required
-                        className="mt-1 w-full"
-                        ref={firstNameInputRef}
-                    />
-                </div>
-                <div>
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input
-                        id="lastName"
-                        type="text"
-                        value={lastName}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLastName(e.target.value)}
-                        placeholder="Doe"
-                        required
-                        className="mt-1 w-full"
-                    />
-                </div>
-                <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-                        placeholder="you@example.com"
-                        required
-                        className="mt-1 w-full"
-                    />
-                </div>
-                <div>
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input
-                        id="phone"
-                        type="tel"
-                        value={phone}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)}
-                        placeholder="123-456-7890"
-                        required
-                        className="mt-1 w-full"
-                    />
-                </div>
-                <div>
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                        id="password"
-                        type="password"
-                        value={password}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        required
-                        className="mt-1 w-full"
-                        ref={passwordInputRef}
-                    />
-                </div>
-                <div>
-                    <Label htmlFor="confirm-password">Confirm Password</Label>
-                    <Input
-                        id="confirm-password"
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
-                        placeholder="••••••••"
-                        required
-                        className="mt-1 w-full"
-                    />
-                </div>
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white mt-4">
-                    Register
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+                <FormField
+                    id="email"
+                    type="email"
+                    label="Email"
+                    placeholder="you@example.com"
+                    register={register('email')}
+                    error={shouldShowError('email') ? errors.email?.message : undefined}
+                />
+
+                <FormField
+                    id="password"
+                    type="password"
+                    label="Password"
+                    placeholder="••••••••"
+                    register={register('password')}
+                    error={shouldShowError('password') ? errors.password?.message : undefined}
+                />
+
+                <FormField
+                    id="confirmPassword"
+                    type="password"
+                    label="Confirm Password"
+                    placeholder="••••••••"
+                    register={register('confirmPassword')}
+                    error={shouldShowError('confirmPassword') ? errors.confirmPassword?.message : undefined}
+                />
+
+                <FormField
+                    id="agreeToTerms"
+                    type="checkbox"
+                    label="Terms and Conditions"
+                    register={register('agreeToTerms')}
+                    error={shouldShowError('agreeToTerms') ? errors.agreeToTerms?.message : undefined}
+                    className="pl-1 pt-2 m-0"
+                >
+                    I have read and agree to the{' '}
+                    <a href="/terms" className="text-blue-500 hover:underline">
+                        Terms and Conditions
+                    </a>
+                </FormField>
+
+                <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white mt-6"
+                >
+                    {isSubmitting ? 'Creating Account...' : 'Register'}
                 </Button>
             </form>
         </BentoBox>
