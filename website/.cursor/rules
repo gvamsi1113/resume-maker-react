@@ -1,0 +1,371 @@
+# =============================================================================
+# RESUME MAKER WEBSITE - CURSOR RULES
+# =============================================================================
+# PRODUCTION-GRADE Next.js 15 Application for Resume Generation Platform
+# This system is being developed for PRODUCTION deployment with enterprise-level
+# standards for performance, security, accessibility, and user experience.
+
+# =============================================================================
+# CORE PRINCIPLES - STRICTLY ENFORCE
+# =============================================================================
+# - Production-ready Next.js 15 with TypeScript and strict type checking
+# - React 19 with concurrent features for optimal performance
+# - TailwindCSS 4 with production optimization and purging
+# - React Query for robust server state management with error handling
+# - React PDF for production-quality PDF generation and viewing
+# - Enterprise-grade authentication with secure token management
+# - Comprehensive error boundaries and fallback UI components
+# - Performance monitoring and Core Web Vitals optimization
+# - WCAG 2.1 AA accessibility compliance
+# - Production build optimization and CDN-ready static assets
+
+# =============================================================================
+# PRODUCTION DEVELOPMENT PRINCIPLES - STRICTLY ENFORCE
+# =============================================================================
+
+# 1. SECURITY FIRST (Production Requirement)
+#    - Secure authentication token storage (httpOnly cookies preferred)
+#    - Input sanitization for all user-generated content
+#    - XSS prevention through proper data escaping
+#    - CSRF protection for state-changing operations
+#    - Content Security Policy (CSP) implementation
+#    - Secure headers configuration
+#    - API endpoint validation and rate limiting
+#    - No sensitive data in client-side code or logs
+
+# 2. PERFORMANCE & SCALABILITY
+#    - Core Web Vitals optimization (LCP <2.5s, FID <100ms, CLS <0.1)
+#    - Proper code splitting and lazy loading
+#    - Image optimization with Next.js Image component
+#    - Bundle size monitoring and optimization
+#    - Efficient caching strategies with React Query
+#    - Memory leak prevention and monitoring
+#    - Production build size limits enforcement
+
+# 3. ACCESSIBILITY & USABILITY (WCAG 2.1 AA Compliance)
+#    - Semantic HTML structure throughout
+#    - Keyboard navigation support for all interactive elements
+#    - Screen reader compatibility with ARIA labels
+#    - Color contrast ratios meeting AA standards
+#    - Focus management and visual indicators
+#    - Responsive design for all device sizes
+#    - Graceful degradation for older browsers
+
+# 4. RELIABILITY & ERROR HANDLING
+#    - Comprehensive error boundaries at component and route levels
+#    - Network failure handling with retry mechanisms
+#    - Offline support with service workers (if applicable)
+#    - Loading states and skeleton screens for better UX
+#    - Form validation with clear error messaging
+#    - Graceful fallbacks for failed API calls
+#    - Client-side error reporting and monitoring
+
+# 5. CODE QUALITY & MAINTAINABILITY
+#    - Single Responsibility Principle (SRP) strictly enforced
+#    - TypeScript strict mode with comprehensive type coverage
+#    - Don't Repeat Yourself (DRY) with reusable components
+#    - Keep It Simple, Stupid (KISS) for production reliability
+#    - Comprehensive component documentation
+#    - Code review requirements for all changes
+#    - Automated testing with minimum 80% coverage
+
+# 6. MONITORING & OBSERVABILITY
+#    - Real User Monitoring (RUM) for performance metrics
+#    - Error tracking with detailed stack traces
+#    - User interaction analytics for UX optimization
+#    - Bundle size and performance budgets
+#    - Lighthouse CI integration for quality gates
+#    - A/B testing infrastructure for feature rollouts
+
+# =============================================================================
+# ARCHITECTURE DECISIONS
+# =============================================================================
+
+# TECH STACK
+- Next.js 15 with App Router and Server Components
+- React 19 with concurrent features
+- TypeScript 5 with strict type checking
+- TailwindCSS 4 for styling
+- React Query 5 for server state management
+- React Hook Form with Zod validation
+- React PDF for document viewing
+
+# STYLING & UI
+# - TailwindCSS 4: Utility-first CSS framework for rapid UI development
+# - PostCSS: CSS processing and optimization
+# - clsx: Utility for constructing className strings conditionally
+# - tailwind-merge: Utility for merging Tailwind CSS classes
+# - Lucide React: Beautiful & consistent icon library
+
+# STATE MANAGEMENT & DATA FETCHING
+# - TanStack Query (React Query) 5: Server state management, caching, and synchronization
+# - TanStack Query DevTools: Development tools for debugging queries
+
+# FORM HANDLING & VALIDATION
+# - React Hook Form: Performant, flexible forms with easy validation
+# - Zod: TypeScript-first schema validation with static type inference
+# - @hookform/resolvers: Resolvers for React Hook Form (Zod)
+
+# PDF HANDLING
+# - React PDF: PDF viewer component for displaying generated resumes
+# - @react-pdf/renderer: Library for generating PDF documents in React
+# - mammoth: Document converter for handling .docx files
+
+# DEVELOPMENT TOOLS
+# - ESLint: Code linting and quality enforcement
+# - Next.js ESLint Config: Next.js specific linting rules
+
+# =============================================================================
+# API INTEGRATION STANDARDS
+# =============================================================================
+
+# BACKEND COMMUNICATION
+- Base URL: http://localhost:8000 (development)
+- Authentication: JWT tokens with refresh mechanism
+- Use React Query for all API calls
+- Implement retry logic and optimistic updates
+- Handle network failures gracefully
+
+# AUTHENTICATION ENDPOINTS
+- POST /api/auth/register/ - User registration
+- POST /api/auth/token/ - Login
+- POST /api/auth/token/refresh/ - Token refresh
+- POST /api/auth/token/blacklist/ - Logout
+
+# CORE API ENDPOINTS
+- GET/PUT/PATCH /api/bio/ - User profile
+- CRUD /api/social-profiles/ - Social profiles
+- CRUD /api/resumes/ - Resume management
+- GET /api/resumes/base/ - Base resume
+- POST /api/generate/ - AI resume generation
+- POST /api/onboard/process-resume/ - Resume upload
+
+# =============================================================================
+# REACT QUERY PATTERNS
+# =============================================================================
+
+# QUERY CONVENTIONS
+- Hierarchical query keys: ['resource', 'action', ...params]
+- Consistent stale time and cache time settings
+- Background refetching for better UX
+- Proper error handling and retry logic
+
+# MUTATION PATTERNS
+- Optimistic updates for better UX
+- Proper loading and error states
+- Cache invalidation after successful mutations
+- Global error handling for failed mutations
+
+# CACHING STRATEGY
+- Cache user data for 5 minutes (staleTime: 5 * 60 * 1000)
+- Cache static data for longer periods
+- Invalidate related queries after mutations
+- Use background refetching for fresh data
+
+# =============================================================================
+# FORM HANDLING STANDARDS
+# =============================================================================
+
+# VALIDATION APPROACH
+- React Hook Form for form state management
+- Zod schemas for validation rules
+- Real-time validation with onChange mode
+- Clear error messaging for users
+- Proper form accessibility
+
+# FORM PATTERNS
+- Controlled components with register()
+- Error display with proper ARIA attributes
+- Loading states during submission
+- Success feedback after completion
+- Form reset after successful submission
+
+# =============================================================================
+# COMPONENT NAMING CONVENTIONS
+# =============================================================================
+
+# FILE NAMING
+- Components: PascalCase (UserProfile.tsx, ResumeCard.tsx)
+- Hooks: camelCase with 'use' prefix (useAuth.ts, useResumes.ts)
+- Utilities: kebab-case (api-client.ts, format-date.ts)
+- Types: PascalCase (User.ts, Resume.ts)
+
+# COMPONENT STRUCTURE
+- Export component as default
+- Named exports for types and utilities
+- Props interface with descriptive names
+- Proper TypeScript typing for all props
+
+# =============================================================================
+# STYLING STANDARDS
+# =============================================================================
+
+# TAILWINDCSS PATTERNS
+- Mobile-first responsive design
+- Consistent spacing scale (4, 8, 12, 16, 20, 24px)
+- Semantic color usage (primary, secondary, destructive)
+- Custom utility classes for complex patterns
+- Dark mode support where applicable
+
+# CSS ORGANIZATION
+- Utility-first approach with TailwindCSS
+- Component-specific styles in CSS modules when needed
+- Global styles for base elements only
+- Consistent design tokens and spacing
+
+# =============================================================================
+# ERROR HANDLING & BOUNDARIES
+# =============================================================================
+
+# ERROR BOUNDARY STRATEGY
+- Route-level error boundaries for page errors
+- Component-level boundaries for widget errors
+- Fallback UI components for error states
+- Error reporting to monitoring services
+- User-friendly error messages
+
+# NETWORK ERROR HANDLING
+- React Query automatic retry with exponential backoff
+- Loading states during API calls
+- Error states with retry buttons
+- Offline support where applicable
+- Graceful degradation for failed requests
+
+# =============================================================================
+# SECURITY PATTERNS
+# =============================================================================
+
+# CLIENT-SIDE SECURITY
+- Input sanitization for user content
+- XSS prevention through proper escaping
+- No sensitive data in client-side storage
+- Secure token storage and transmission
+- Content Security Policy implementation
+
+# AUTHENTICATION SECURITY
+- Secure token storage (httpOnly cookies preferred)
+- Automatic token refresh
+- Proper logout and token cleanup
+- Route protection for authenticated pages
+- Permission-based UI rendering
+
+# =============================================================================
+# PERFORMANCE OPTIMIZATION
+# =============================================================================
+
+# BUNDLE OPTIMIZATION
+- Dynamic imports for code splitting
+- Lazy loading for below-the-fold content
+- Tree shaking for unused code elimination
+- Bundle analysis and size monitoring
+- Next.js Image component for image optimization
+
+# RUNTIME PERFORMANCE
+- React.memo for expensive components
+- useMemo for expensive calculations
+- useCallback for stable function references
+- Proper dependency arrays in hooks
+- Virtual scrolling for large lists
+
+# NETWORK OPTIMIZATION
+- React Query caching and background updates
+- Request deduplication
+- Optimistic updates for better UX
+- Image optimization with Next.js
+- CDN usage for static assets
+
+# =============================================================================
+# ENVIRONMENT CONFIGURATION
+# =============================================================================
+
+# ENVIRONMENT VARIABLES
+- NEXT_PUBLIC_API_URL: Backend API base URL
+- NEXT_PUBLIC_APP_ENV: Environment identifier
+- All public variables prefixed with NEXT_PUBLIC_
+- Sensitive data in server-side only variables
+
+# BUILD CONFIGURATION
+- TypeScript strict mode enabled
+- ESLint with Next.js config
+- Prettier for code formatting
+- Husky for pre-commit hooks
+- Path mapping for clean imports (@/components)
+
+# =============================================================================
+# TYPE SAFETY STANDARDS
+# =============================================================================
+
+# TYPESCRIPT PATTERNS
+- Strict mode enabled with no implicit any
+- Proper typing for all API responses
+- Interface definitions for all props
+- Type guards for runtime validation
+- Generic types for reusable components
+
+# API TYPE SAFETY
+- Generate types from backend schemas
+- Runtime validation with Zod
+- Type-safe API client methods
+- Proper error type definitions
+- Consistent response type patterns
+
+# =============================================================================
+# TESTING APPROACH
+# =============================================================================
+
+# TESTING STRATEGY
+- Unit tests for utility functions
+- Component tests with React Testing Library
+- Integration tests for user flows
+- E2E tests for critical paths
+- Mock API calls for consistent testing
+
+# TESTING CONVENTIONS
+- Test user behavior, not implementation details
+- Proper accessibility testing
+- Error state testing
+- Loading state testing
+- Mock external dependencies
+
+# =============================================================================
+# ACCESSIBILITY REQUIREMENTS
+# =============================================================================
+
+# SEMANTIC HTML
+- Proper heading hierarchy (h1-h6)
+- Semantic elements (nav, main, section, article)
+- Form labels and fieldsets
+- ARIA attributes where needed
+- Focus management for modals and navigation
+
+# KEYBOARD NAVIGATION
+- Tab order for all interactive elements
+- Escape key handling for modals
+- Arrow key navigation for lists
+- Enter and Space key handling
+- Skip links for main content
+
+# SCREEN READER SUPPORT
+- Alt text for all images
+- ARIA labels for complex widgets
+- Live regions for dynamic content
+- Proper form error announcements
+- Descriptive link text
+
+# =============================================================================
+# MONITORING & ANALYTICS
+# =============================================================================
+
+# PERFORMANCE MONITORING
+- Core Web Vitals tracking
+- Bundle size monitoring
+- API response time tracking
+- Error rate monitoring
+- User interaction analytics
+
+# ERROR TRACKING
+- Client-side error reporting
+- API error logging
+- User session recording
+- Performance bottleneck identification
+- Real user monitoring (RUM) 

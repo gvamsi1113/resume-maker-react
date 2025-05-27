@@ -1,0 +1,293 @@
+# =============================================================================
+# RESUME MAKER BACKEND - CURSOR RULES
+# =============================================================================
+# Production Django REST API with JWT auth, PostgreSQL, and Gemini AI integration
+
+# =============================================================================
+# CORE PRINCIPLES - STRICTLY ENFORCE
+# =============================================================================
+
+# SECURITY FIRST
+- All endpoints require proper authentication/authorization
+- Validate and sanitize ALL user inputs
+- Use JWT with refresh tokens and blacklisting
+- Implement rate limiting on all endpoints
+- Never expose sensitive data in responses
+- Use environment variables for secrets
+
+# RELIABILITY & PERFORMANCE
+- Graceful degradation when external services fail
+- Database query optimization with select_related/prefetch_related
+- Comprehensive error handling with user-friendly messages
+- Implement retry mechanisms for external API calls
+- Use database transactions for data consistency
+
+# CODE QUALITY
+- Single Responsibility Principle (SRP) strictly enforced
+- Type hints for all functions and methods
+- Comprehensive docstrings for all classes and functions
+- Don't Repeat Yourself (DRY) with shared utilities
+
+# =============================================================================
+# ARCHITECTURE DECISIONS
+# =============================================================================
+
+# FRAMEWORK & LIBRARIES
+- Django REST Framework for all API endpoints
+- PostgreSQL 15 as primary database
+- JWT authentication with SimpleJWT
+- Google Gemini AI for resume processing
+- CORS middleware for frontend communication
+
+# PROJECT STRUCTURE
+- authentication: User registration and JWT management
+- bio: User profiles and social links
+- resumes: Resume CRUD and base resume management
+- generation: AI-powered resume generation
+- onboarding: Resume upload and processing
+
+# DATABASE PATTERNS
+- Use UUID primary keys for external-facing models
+- JSON fields for structured data (work experience, education, etc.)
+- OneToOne relationship between User and Bio
+- ForeignKey relationships with proper related_names
+- Database constraints for data integrity
+
+# =============================================================================
+# API ENDPOINTS COMPREHENSIVE REFERENCE
+# =============================================================================
+
+# AUTHENTICATION APP (/api/auth/)
+# RegisterView (POST /api/auth/register/)
+  Input: {username, password, password2, email, first_name?, last_name?}
+  Output: {id, username, email, first_name, last_name}
+  Function: Creates new user with password validation and uniqueness checks
+  
+# TokenObtainPairView (POST /api/auth/token/)
+  Input: {username, password}
+  Output: {access: "jwt-token", refresh: "jwt-token"}
+  Function: Authenticates user and returns JWT tokens
+  
+# TokenRefreshView (POST /api/auth/token/refresh/)
+  Input: {refresh: "refresh-token"}
+  Output: {access: "new-access-token"}
+  Function: Generates new access token from valid refresh token
+  
+# TokenBlacklistView (POST /api/auth/token/blacklist/)
+  Input: {refresh: "refresh-token"}
+  Output: {success: "Token successfully blacklisted"}
+  Function: Invalidates refresh token for secure logout
+
+# BIO APP (/api/)
+# BioRetrieveUpdateView (GET/PUT/PATCH /api/bio/)
+  Input GET: None (authenticated user context)
+  Output GET: Full bio with nested social_profiles
+  Input PUT/PATCH: Bio fields + social profiles data
+  Output PUT/PATCH: Updated bio with nested social_profiles
+  Function: Manages user's biographical information and social profiles
+  
+# SocialProfileViewSet (CRUD /api/social-profiles/)
+  Input POST: {network, username?, url}
+  Output POST: Created social profile with timestamps
+  Input PUT/PATCH: Updated social profile fields
+  Output PUT/PATCH: Updated social profile
+  Function: Manages user's social media profiles with uniqueness constraints
+
+# RESUMES APP (/api/)
+# ResumeViewSet (CRUD /api/resumes/)
+  Input GET: None (filtered by user)
+  Output GET: List of user resumes (ResumeListSerializer)
+  Input GET /{id}/: Resume UUID
+  Output GET /{id}/: Full resume with merged bio data in "basics" section
+  Input PUT/PATCH /{id}/: Resume fields and JSON data
+  Output PUT/PATCH /{id}/: Updated resume
+  Input DELETE /{id}/: Resume UUID (except base resume)
+  Function: Full CRUD operations with bio data integration
+  
+# ResumeViewSet.get_base_resume (GET /api/resumes/base/)
+  Input: None (authenticated user context)
+  Output: Base resume data or 404 if not found
+  Function: Retrieves user's base resume template
+  
+# ResumeViewSet.create_base_resume (POST /api/resumes/create-base/)
+  Input: None (creates from user's bio data)
+  Output: Created base resume or 400 if already exists
+  Function: Initializes base resume from user's bio information
+
+# GENERATION APP (/api/)
+# GenerateResumeView (POST /api/generate/)
+  Input: {jd_text: "job description text"}
+  Output: Full ResumeSerializer data of newly created tailored resume
+  Function: Uses Gemini AI to generate job-specific resume from base resume
+  Error Handling: 400 (bad input/blocked), 503 (AI unavailable), 502 (parse error)
+
+# ONBOARDING APP (/api/)
+# DemoTokenView (POST /api/onboard/get-demo-token/)
+  Input: None
+  Output: {token: "uuid", captcha_challenge: "string", message: "instructions"}
+  Function: Generates secure demo token for anonymous resume uploads
+  
+# OnboardingResumeUploadView (POST /api/onboard/process-resume/)
+  Input: multipart/form-data with resume_file + X-Demo-Token header
+  Output: Structured resume data or duplicate detection response
+  Function: Extracts structured data from uploaded resume using Gemini AI
+  Features: Text extraction, contact duplicate detection, AI processing
+
+# =============================================================================
+# DATA SCHEMAS & VALIDATION
+# =============================================================================
+
+# CRITICAL JSON FIELD STRUCTURES
+- work: [{name, position, startDate, endDate, highlights[], location, skills_used[]}]
+- education: [{institution, area, studyType, startDate, endDate, gpa, achievements[]}]
+- projects: [{name, description, url, keywords[], role, highlights[]}]
+- skills: [{category, skills[]}]
+- languages: ["Language (Proficiency level)"]
+- certificates: [{name, issuing_organization, issue_date, relevance}]
+- socials: [{network, username, url}]
+
+# VALIDATION RULES
+- All dates in YYYY-MM or YYYY format
+- Email validation for all email fields
+- URL validation for social profiles and project links
+- Required fields: name, email for user creation
+- Unique constraints: one base resume per user, unique social networks per bio
+
+# MODEL RELATIONSHIPS
+- User ↔ Bio (OneToOne with auto-creation via post_save signal)
+- Bio ↔ SocialProfile (ForeignKey, related_name="social_profiles")
+- User ↔ Resume (ForeignKey, related_name="resumes")
+- Resume constraint: unique base resume per user
+
+# =============================================================================
+# SERVICE LAYER FUNCTIONS
+# =============================================================================
+
+# GENERATION SERVICES
+# generate_resume_content_for_jd(user, jd_text)
+  Input: User object, job description text
+  Output: Resume data dict or error string
+  Function: Orchestrates AI resume generation from base resume and job description
+  
+# ONBOARDING SERVICES
+# extract_text_from_uploaded_file(uploaded_file)
+  Input: Django UploadedFile object
+  Output: Extracted text string
+  Function: Extracts text from PDF/DOCX files for processing
+  
+# extract_contact_details_from_text_snippet(text_snippet)
+  Input: Text snippet (first 100 chars)
+  Output: Dict with email/phone or None
+  Function: Extracts contact info for duplicate detection
+  
+# generate_structured_data_from_file_content(file_content, filename)
+  Input: File content string, filename
+  Output: Structured resume data dict or error string
+  Function: Uses Gemini AI to extract structured resume data
+
+# SECURITY SERVICES (Onboarding)
+# SecurityManager.generate_token()
+  Output: UUID token string
+  Function: Creates secure demo token for anonymous uploads
+  
+# SecurityManager.validate_request(request)
+  Input: Django request object
+  Output: (is_valid: bool, error_message: str)
+  Function: Validates demo token and request security
+
+# =============================================================================
+# AI INTEGRATION STANDARDS
+# =============================================================================
+
+# GEMINI AI CONFIGURATION
+- Use GOOGLE_API_KEY or GEMINI_API_KEY environment variable
+- Model selection: gemini-2.5-pro-preview for any generation
+- Always expect JSON responses from AI
+- Implement error handling for API failures and content blocking
+- Log all AI interactions for debugging
+
+# AI PROMPT PATTERNS
+- Structured extraction for resume processing
+- Resume tailoring based on job descriptions
+- Maintain user's original content while enhancing relevance
+- Strict JSON schema adherence in responses
+
+# =============================================================================
+# SECURITY & PERMISSIONS
+# =============================================================================
+
+# AUTHENTICATION PATTERNS
+- IsAuthenticated permission for all user data endpoints
+- Automatic user filtering (request.user) for all personal data
+- Token-based access for anonymous operations (demo tokens)
+- Proper CORS configuration for frontend domains
+
+# DATA SECURITY
+- No password fields in serializer responses
+- UUID primary keys to prevent enumeration attacks
+- Input sanitization through serializer validation
+- File upload validation and security checks
+
+# =============================================================================
+# ENVIRONMENT CONFIGURATION
+# =============================================================================
+
+# REQUIRED ENVIRONMENT VARIABLES
+- SECRET_KEY: Django secret key (production)
+- DEBUG: "False" for production
+- DATABASE_URL: PostgreSQL connection string
+- GOOGLE_API_KEY: Gemini AI access
+- DJANGO_ALLOWED_HOSTS: Space-separated allowed hosts
+- CORS_ALLOWED_ORIGINS: Frontend URLs
+
+# DOCKER SETUP
+- PostgreSQL service: postgres:15-alpine
+- Database: resume_gen_db, User: gvamsi, Password: 1113
+- Backend runs on port 8000
+- Auto-migration on container startup
+
+# =============================================================================
+# ERROR HANDLING STANDARDS
+# =============================================================================
+
+# RESPONSE FORMATS
+- Success: Return appropriate data structure
+- 400 Bad Request: {"error": "descriptive message"} or field validation errors
+- 401 Unauthorized: {"detail": "Authentication credentials not provided"}
+- 404 Not Found: {"detail": "Not found"} or specific resource message
+- 500 Internal Server Error: {"error": "An unexpected error occurred"}
+
+# AI SERVICE ERRORS
+- API key not configured: 503 Service Unavailable
+- Content blocked: 400 Bad Request with explanation
+- Rate limiting: Implement exponential backoff
+- Network errors: 500 Internal Server Error
+
+# =============================================================================
+# PERFORMANCE OPTIMIZATION
+# =============================================================================
+
+# QUERY OPTIMIZATION
+- Use select_related() for foreign key relationships
+- Use prefetch_related() for reverse foreign keys and many-to-many
+- Filter querysets before applying joins
+- Add database indexes for frequently queried fields
+
+# CACHING STRATEGY
+- Cache expensive AI operations when appropriate
+- Use connection pooling for database connections
+- Implement query result caching for static data
+
+# =============================================================================
+# SIGNAL HANDLING
+# =============================================================================
+
+# USER MODEL SIGNALS
+- Auto-create Bio on User creation via post_save signal
+- Update Bio fields from User data if Bio fields are empty
+- Ensure idempotent signal handling with get_or_create
+
+# SIGNAL BEST PRACTICES
+- Keep signal handlers lightweight and fast
+- Use database transactions to maintain consistency
+- Handle signal failures gracefully 
