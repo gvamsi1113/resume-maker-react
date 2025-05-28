@@ -9,7 +9,12 @@ const nextConfig: NextConfig = {
     return config;
   },
   images: {
-    domains: ['cdn.brandfetch.io'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cdn.brandfetch.io',
+      },
+    ],
   },
 };
 
