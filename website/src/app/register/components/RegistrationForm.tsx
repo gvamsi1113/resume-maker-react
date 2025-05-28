@@ -73,7 +73,7 @@ export default function RegistrationForm({ resumeData }: RegistrationFormProps) 
             if (response.user && response.access) {
                 const tokensForAuthHook = {
                     access: response.access,
-                    refresh: response.refresh
+                    // refresh token is handled by HttpOnly cookie
                 };
                 const userForAuthHook = {
                     id: response.user.pk,
