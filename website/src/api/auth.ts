@@ -11,20 +11,21 @@ interface DemoTokenResponse {
 // Define the registration request and response types
 interface RegisterRequest {
   email: string;
-  password: string;
-  confirmPassword: string;
+  password1: string;
+  password2: string;
 }
 
 interface RegisterResponse {
-  message: string;
+  // message: string; // Removed as it's not in the current backend response for registration
   user: {
-    id: number;
+    pk: number; // Changed from id to pk
     email: string;
+    first_name?: string; // Added based on backend response (can be empty string)
+    last_name?: string;  // Added based on backend response (can be empty string)
   };
-  tokens: {
-    access: string;
-    // refresh: string; // Refresh token is now in an HttpOnly cookie, not in response body
-  };
+  access: string;  // Moved to top level
+  refresh: string; // Moved to top level, assuming it's sent in the registration response body
+  // tokens object removed
 }
 
 export const fetchDemoToken = async (): Promise<Partial<TokenState>> => {
@@ -42,7 +43,7 @@ export const fetchDemoToken = async (): Promise<Partial<TokenState>> => {
 };
 
 export const registerUser = async (userData: RegisterRequest): Promise<RegisterResponse> => {
-  const response = await fetcher<RegisterResponse>('/api/auth/register/', {
+  const response = await fetcher<RegisterResponse>('/api/auth/registration/', {
     method: 'POST',
     body: userData,
   });

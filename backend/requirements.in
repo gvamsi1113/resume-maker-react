@@ -9,3 +9,5 @@ gunicorn>=21.0,<22.0
 bcrypt>=4.1,<4.2
 google-genai>=1.15.0,<1.16.0
 textract>=1.6.5 # For extracting text from various file types (PDF, DOCX, etc.)
+django-allauth
+dj-rest-auth

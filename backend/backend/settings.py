@@ -23,16 +23,28 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",  # Required by allauth
+    "accounts",
     "rest_framework",
+    "rest_framework.authtoken",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
-    "authentication",
+    # "authentication", # No longer needed
     "bio",
     "resumes",
     "generation",
     "onboarding",
     "corsheaders",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",  # If using social accounts
+    "dj_rest_auth",
+    "dj_rest_auth.registration",  # For registration views
 ]
+
+# Required by allauth
+SITE_ID = 1
+
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
@@ -42,6 +54,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",  # allauth middleware
 ]
 ROOT_URLCONF = "backend.urls"
 TEMPLATES = [
@@ -52,7 +65,7 @@ TEMPLATES = [
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.debug",
-                "django.template.context_processors.request",
+                "django.template.context_processors.request",  # allauth needs this
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
             ],
@@ -60,6 +73,8 @@ TEMPLATES = [
     },
 ]
 WSGI_APPLICATION = "backend.wsgi.application"
+
+AUTH_USER_MODEL = "accounts.CustomUser"
 
 # Database configuration
 # Default to SQLite if DATABASE_URL is not set
@@ -97,68 +112,105 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Django Rest Framework Settings
 REST_FRAMEWORK = {
+    # dj_rest_auth will handle authentication classes
+    # 'DEFAULT_AUTHENTICATION_CLASSES': (
+    #     'rest_framework_simplejwt.authentication.JWTAuthentication',
+    # ),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
+    # Make sure DRF uses Django's session authentication if needed by allauth views
+    # or if you mix session and token auth. dj_rest_auth handles token auth.
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        # Tells DRF to look for JWT Bearer tokens for authentication
         "rest_framework_simplejwt.authentication.JWTAuthentication",
+        # Add session auth if you have views that might use it,
+        # or if allauth's non-API views are directly accessed.
+        # 'rest_framework.authentication.SessionAuthentication',
     ),
-    "DEFAULT_PERMISSION_CLASSES": (
-        # Sets the default access level. AllowAny means anyone can access
-        # endpoints unless specifically restricted later.
-        "rest_framework.permissions.AllowAny",
-    ),
-    # Optional settings can be added later
 }
 
-# Simple JWT Settings
+AUTHENTICATION_BACKENDS = (
+    # Needed to login by username in Django admin, regardless of `allauth`
+    "django.contrib.auth.backends.ModelBackend",
+    # `allauth` specific authentication methods, such as login by e-mail
+    "allauth.account.auth_backends.AuthenticationBackend",
+)
+
+# django-allauth specific settings
+# ACCOUNT_AUTHENTICATION_METHOD = "email"  # Deprecated
+ACCOUNT_LOGIN_METHODS = {"email"}  # New setting
+# ACCOUNT_EMAIL_REQUIRED = True # Deprecated
+ACCOUNT_SIGNUP_FIELDS = {
+    "email",
+    "password",
+}  # New setting: specifies fields for signup form
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_USERNAME_REQUIRED = False  # dj_rest_auth compatibility; allauth itself will ignore this with custom model
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None  # Correct for allauth with no username field
+ACCOUNT_USERNAME_HANDLING = "email"  # Use email as username
+ACCOUNT_ADAPTER = "accounts.adapter.AccountAdapter"
+
+# For DRF/React SPA, we usually don't need allauth's default login/logout views
+# LOGIN_REDIRECT_URL = "/"
+# LOGOUT_REDIRECT_URL = "/"
+
+SILENCED_SYSTEM_CHECKS = ["account.W001"]  # Silence spurious allauth warning
+
+# dj-rest-auth settings
+REST_AUTH = {
+    "USE_JWT": True,
+    "JWT_AUTH_HTTPONLY": True,  # For refresh token in HttpOnly cookie
+    "JWT_AUTH_COOKIE": "refresh-token",  # Name of the cookie for refresh token by dj-rest-auth
+    "JWT_AUTH_REFRESH_COOKIE": "refresh-token",  # Ensure this matches JWT_AUTH_COOKIE if using simplejwt defaults
+    "JWT_AUTH_SAMESITE": "Lax",
+    "USER_DETAILS_SERIALIZER": "dj_rest_auth.serializers.UserDetailsSerializer",  # Default
+    "LOGIN_SERIALIZER": "dj_rest_auth.serializers.LoginSerializer",  # Default
+    "REGISTER_SERIALIZER": "accounts.serializers.CustomRegisterSerializer",  # USE OUR CUSTOM SERIALIZER
+    # If you need to issue an access token in the response body and refresh token in cookie
+    "JWT_AUTH_RETURN_EXPIRATION": False,  # simplejwt specific, dj-rest-auth handles this
+    "SESSION_LOGIN": False,  # Ensure this is False if you only want JWT
+}
+
+
+# Simple JWT Settings (dj_rest_auth uses these if djangorestframework-simplejwt is the JWT provider)
 SIMPLE_JWT = {
-    # How long an access token is valid (e.g., 15 minutes)
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=1),
-    # How long a refresh token is valid (e.g., 1 day)
-    "REFRESH_TOKEN_LIFETIME": timedelta(minutes=10),
-    # Issue a new refresh token when the old one is used (recommended)
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),  # Increased for usability
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),  # Standard refresh lifetime
     "ROTATE_REFRESH_TOKENS": True,
-    # Invalidate the old refresh token after rotation (recommended)
     "BLACKLIST_AFTER_ROTATION": True,
-    # Update Django's 'last_login' field when a token is refreshed
     "UPDATE_LAST_LOGIN": True,
-    "ALGORITHM": "HS256",  # Signing algorithm
-    # Use Django's main SECRET_KEY for signing tokens
+    "ALGORITHM": "HS256",
     "SIGNING_KEY": SECRET_KEY,
-    "VERIFYING_KEY": "",  # Not needed for HS256
+    "VERIFYING_KEY": None,
     "AUDIENCE": None,
     "ISSUER": None,
-    "JSON_ENCODER": None,
     "JWK_URL": None,
     "LEEWAY": 0,
-    # Specifies the 'Authorization' header format (e.g., "Bearer <token>")
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
-    "USER_ID_FIELD": "id",  # Field on the User model to use for ID
-    "USER_ID_CLAIM": "user_id",  # Claim name in the JWT payload for user ID
-    "USER_AUTHENTICATION_RULE": (
-        "rest_framework_simplejwt.authentication" ".default_user_authentication_rule"
-    ),
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+    "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
     "TOKEN_TYPE_CLAIM": "token_type",
-    "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
-    "JTI_CLAIM": "jti",  # Unique identifier for the token
+    "JTI_CLAIM": "jti",
     "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
-    # Only used if sliding tokens enabled
     "SLIDING_TOKEN_LIFETIME": timedelta(minutes=5),
-    # Only used if sliding tokens enabled
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
+    # Custom: if refresh token is sent in cookie, simplejwt needs to know it won't be in body
+    # This is usually handled by dj-rest-auth's configuration rather than simplejwt directly
 }
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # Frontend development server
+    "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
 
 # For development, allow all origins (remove in production)
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ALLOW_ALL_ORIGINS = True # Commented out to use specific origins
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "x-demo-token",
 ]
 
-CORS_ALLOW_CREDENTIALS = True  # Allow cookies to be sent with cross-origin requests
+CORS_ALLOW_CREDENTIALS = True
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"  # During development

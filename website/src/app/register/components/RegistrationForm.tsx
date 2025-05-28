@@ -63,17 +63,25 @@ export default function RegistrationForm({ resumeData }: RegistrationFormProps) 
         try {
             const response = await registerUser({
                 email: data.email,
-                password: data.password,
-                confirmPassword: data.confirmPassword,
+                password1: data.password,
+                password2: data.confirmPassword,
             });
 
             console.log('Registration successful:', response);
 
             // Use the auth hook to handle login
-            if (response.user && response.tokens && response.tokens.access) {
-                login(response.user, response.tokens);
+            if (response.user && response.access) {
+                const tokensForAuthHook = {
+                    access: response.access,
+                    refresh: response.refresh
+                };
+                const userForAuthHook = {
+                    id: response.user.pk,
+                    email: response.user.email
+                };
+                login(userForAuthHook, tokensForAuthHook);
             } else {
-                console.error("Registration API response missing user, tokens, or tokens.access:", response);
+                console.error("Registration API response missing user or access token:", response);
                 alert("Registration completed, but auto-login failed. Please try logging in manually.");
                 setIsSuccess(false);
                 return;

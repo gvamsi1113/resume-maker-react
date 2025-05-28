@@ -1,14 +1,16 @@
 # backend/resumes/models.py
 import uuid
 from django.db import models
-from django.contrib.auth.models import User
+
+# from django.contrib.auth.models import User # No longer directly import User
+from django.conf import settings  # Import settings
 from django.db.models import Q  # For constraints condition
 
 
 class Resume(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,  # Use settings.AUTH_USER_MODEL
         on_delete=models.CASCADE,
         related_name="resumes",
         null=True,
@@ -70,7 +72,8 @@ class Resume(models.Model):
 
     def __str__(self):
         base_marker = "[BASE]" if self.is_base_resume else ""
-        user_identifier = self.user.username if self.user else "Anonymous"
+        # CustomUser's __str__ returns email, or use user.email directly
+        user_identifier = self.user.email if self.user else "Anonymous"
         return f"{user_identifier} - {self.name} ({self.id}) {base_marker}"
 
     class Meta:
