@@ -143,8 +143,7 @@ ACCOUNT_SIGNUP_FIELDS = {
     "password",
 }  # New setting: specifies fields for signup form
 ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_EMAIL_VERIFICATION = "mandatory"
-ACCOUNT_USERNAME_REQUIRED = False  # dj_rest_auth compatibility; allauth itself will ignore this with custom model
+ACCOUNT_EMAIL_VERIFICATION = "none"  # Can be "mandatory" or "optional"
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None  # Correct for allauth with no username field
 ACCOUNT_USERNAME_HANDLING = "email"  # Use email as username
 ACCOUNT_ADAPTER = "accounts.adapter.AccountAdapter"

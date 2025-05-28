@@ -59,15 +59,13 @@ interface LoginRequest {
 
 // Updated LoginResponse to match the new backend response structure
 interface LoginResponse {
-  message: string;
+  access: string;
+  refresh: string;
   user: {
-    id: number;
+    pk: number;
     email: string;
-    // any other user fields returned
-  };
-  tokens: {
-    access: string;
-    // refresh: string; // Refresh token is now in an HttpOnly cookie, not in response body
+    first_name?: string;
+    last_name?: string;
   };
 }
 
@@ -81,13 +79,7 @@ export const loginUser = async (credentials: LoginRequest): Promise<LoginRespons
   return response;
 };
 
-// Define the logout request (refresh token)
-interface LogoutRequest {
-  refresh: string;
-}
 
-// LogoutResponse can be simple, like an empty object or a success message if your backend sends one
-// For TokenBlacklistView, a 204 No Content is typical, so an empty response or just checking status is fine.
 interface LogoutResponse { 
     message?: string; // Optional message from backend
     detail?: string; // Optional detail for errors

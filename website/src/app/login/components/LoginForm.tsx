@@ -52,14 +52,23 @@ export default function LoginForm() {
 
             console.log('Login successful:', response);
 
-            // The loginUser response now includes a top-level 'user' object and a nested 'tokens' object.
-            // The backend now only returns the access token in tokens.refresh, refresh is in an HttpOnly cookie.
-            // The useAuth().login() function expects (user, tokens) where tokens contains at least .access.
+            // The loginUser response now provides 'access' and 'user' at the top level.
+            // The useAuth().login() function expects (user, tokens) 
+            // where user has an 'id' field and tokens has an 'access' field.
 
-            if (response.user && response.tokens && response.tokens.access) {
-                login(response.user, response.tokens);
+            if (response.user && response.access) {
+                const userForAuthHook = {
+                    id: response.user.pk, // Map pk to id
+                    email: response.user.email,
+                    // Add other user fields if your User type in useAuth expects them
+                    // For now, assuming useAuth User type only needs id and email based on typical usage.
+                };
+                const tokensForAuthHook = {
+                    access: response.access,
+                };
+                login(userForAuthHook, tokensForAuthHook);
             } else {
-                console.error("Login API response missing user, tokens, or tokens.access:", response);
+                console.error("Login API response missing user or access token:", response);
                 setError("Login failed: Unexpected response from server.");
                 setIsSuccess(false);
                 return;
