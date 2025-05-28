@@ -1,21 +1,15 @@
 'use client';
 
 import React, { useEffect } from 'react';
-// import { useSearchParams } from 'next/navigation'; // No longer needed
-import { useRouter } from 'next/navigation'; // For potential redirection
 import BentoBox from '@/components/ui/BentoBox';
 import ResumeView from '../upload/components/ResumeView';
-import RegistrationForm from './components/RegistrationForm'; // Import the new form
-import { useResumeData } from '@/context/ResumeDataContext'; // Added import
-import PageLayout from '@/components/layout/PageLayout'; // Added import
+import RegistrationForm from './components/RegistrationForm';
+import { useResumeData } from '@/context/ResumeDataContext';
+import PageLayout from '@/components/layout/PageLayout';
 
 export default function RegisterPage() {
-    // const searchParams = useSearchParams(); // No longer needed
-    // const resumeDataString = searchParams.get('resumeData'); // No longer needed
-    const { resumeData, setResumeData } = useResumeData(); // Get data and setter from context
-    // const router = useRouter(); // No longer needed here if we are not redirecting
+    const { resumeData } = useResumeData();
 
-    // Log resumeData to see its content when the page loads
     useEffect(() => {
         console.log('RegisterPage - resumeData from context:', resumeData);
     }, [resumeData]);
@@ -23,7 +17,7 @@ export default function RegisterPage() {
     const enhancedData = resumeData?.enhanced_resume_data;
 
     return (
-        <PageLayout> {/* Used PageLayout component */}
+        <PageLayout>
             {enhancedData ? (
                 <BentoBox
                     splitConfig={{ direction: 'horizontal', fractions: [2, 1] }}
@@ -36,8 +30,7 @@ export default function RegisterPage() {
 
                 </BentoBox>
             ) : (
-                // If no resume data, show only the registration form (centered by PageLayout)
-                <RegistrationForm /> // Pass nothing if no enhancedData
+                <RegistrationForm />
             )}
         </PageLayout>
     );

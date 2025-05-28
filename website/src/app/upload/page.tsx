@@ -76,15 +76,6 @@ export default function UploadPage() {
     }, [isSuccess, responseData, router, setResumeData]);
 
     /**
-     * Callback triggered when the internal submission process of `UploadFlow` completes.
-     * @remarks Currently logs the success status and response data availability.
-     * This could be used for further actions post-submission if needed.
-     */
-    const handleSubmit = useCallback(() => {
-        console.log('UploadFlow internal submission completed. isSuccess:', isSuccess, 'Has responseData:', !!responseData);
-    }, [isSuccess, responseData]);
-
-    /**
      * Callback for submitting the captcha answer.
      * Validates the captcha and starts the upload if a file is pending.
      * @param {string} answer - The user's answer to the captcha.
@@ -124,7 +115,6 @@ export default function UploadPage() {
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                     onFileChange={handleFileChange}
-                    onSubmit={handleSubmit}
                     onCancel={handleCancel}
                     onCaptchaSubmit={onCaptchaSubmit}
                 />

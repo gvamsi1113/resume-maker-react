@@ -163,7 +163,7 @@ const fetcher = async <T>(
               const text = await response.text();
               try {
                   return JSON.parse(text) as T;
-              } catch (e) {
+              } catch {
                   return text as unknown as T;
               }
           });
@@ -178,10 +178,10 @@ const fetcher = async <T>(
         );
         try {
             error.data = await response.json();
-        } catch (e) {
+        } catch {
             try {
             error.data = await response.text();
-            } catch (textError) {
+            } catch {
             error.data = 'Could not parse error response body.';
             }
         }
@@ -199,13 +199,14 @@ const fetcher = async <T>(
       return response.json() as Promise<T>;
     }
     // For non-JSON, attempt to parse as text, then try JSON.parse on text
-    return response.text().then(text => {
-        try {
-            return JSON.parse(text) as T;
-        } catch (e) {
-            return text as unknown as T;
-        }
-    });
+    const text = await response.text();
+    try {
+        return JSON.parse(text) as T;
+    } catch {
+        // If parsing as JSON fails, return the raw text.
+        // This can be useful for non-JSON responses or unexpected formats.
+        return text as unknown as T;
+    }
 
   } catch (error) { // This is the main catch block for all errors
     const fetchError = error as FetchError;

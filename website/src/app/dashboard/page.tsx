@@ -8,11 +8,6 @@ import { LargeText, SmallText } from '@/components/ui/Typography';
 import { useAuth } from '@/hooks/useAuth';
 import { logoutUser } from '@/api/auth';
 
-interface User {
-    id: number;
-    email: string;
-}
-
 export default function Dashboard() {
     const router = useRouter();
     const { user, isLoading, isAuthenticated, logout } = useAuth();

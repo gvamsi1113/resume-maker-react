@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, FileText, FileSpreadsheet, File, RefreshCw, AlertCircle } from 'lucide-react';
+import { X, FileText, FileSpreadsheet, File } from 'lucide-react';
 import { UploadProgress } from './UploadProgress';
 import BentoBox from '@/components/ui/BentoBox';
 

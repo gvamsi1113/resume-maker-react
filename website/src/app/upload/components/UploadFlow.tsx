@@ -34,8 +34,6 @@ interface UploadFlowProps {
     onDrop: (event: React.DragEvent<HTMLDivElement>) => void;
     /** Event handler for when a file is selected via the file input. */
     onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-    /** Callback function triggered to initiate the upload (e.g., after file selection, before captcha). */
-    onSubmit: () => void; // Assuming this is for an action like "Proceed to Upload" if ever needed, currently not directly tied to a button in this component itself.
     /** Callback function triggered when the user cancels the file selection or upload. */
     onCancel: () => void;
     /** Callback function for submitting the captcha answer. */
@@ -63,7 +61,6 @@ export function UploadFlow({
     onDragLeave,
     onDrop,
     onFileChange,
-    onSubmit,
     onCancel,
     onCaptchaSubmit
 }: UploadFlowProps) {
