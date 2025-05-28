@@ -41,9 +41,9 @@ const fetcher = async <T>(
     baseHeaders['Content-Type'] = 'application/json';
   }
 
-  const mergedHeaders = {
+  const mergedHeaders: Record<string, string> = {
     ...baseHeaders,
-    ...(options.headers as Record<string, string>),
+    ...(options.headers as Record<string, string> || {}),
   };
 
   // Add Authorization header if an access token exists and not already provided
@@ -54,16 +54,18 @@ const fetcher = async <T>(
 
   const config: RequestInit = {
     ...options,
-    headers: mergedHeaders,
+    headers: mergedHeaders, // Use the correctly typed mergedHeaders
     credentials: 'include', // Tell fetch to include cookies and auth headers for cross-origin requests
   };
 
   if (options.body) {
     if (options.body instanceof FormData) {
       // Let browser set Content-Type for FormData
-      delete config.headers?.['Content-Type']; 
+      if (config.headers && typeof config.headers === 'object' && !Array.isArray(config.headers)) {
+        delete (config.headers as Record<string, string>)['Content-Type'];
+      }
       config.body = options.body;
-    } else if (config.headers?.['Content-Type'] === 'application/json') {
+    } else if (config.headers && typeof config.headers === 'object' && !Array.isArray(config.headers) && (config.headers as Record<string, string>)['Content-Type'] === 'application/json') {
       config.body = JSON.stringify(options.body);
     } else {
       config.body = options.body;
@@ -149,7 +151,21 @@ const fetcher = async <T>(
           }).then(async (resolvedResponse) => { // This .then handles the resolved promise from queuing
               response = resolvedResponse; // Assign resolved response to outer response variable
               if (!response.ok) throw response; // If still not ok, throw to be caught by main error handler
-              return response;
+              
+              // Process response to T, similar to the main success path
+              if (response.status === 204) {
+                return null as unknown as T;
+              }
+              const contentType = response.headers.get('content-type');
+              if (contentType && contentType.includes('application/json')) {
+                return await response.json() as T;
+              }
+              const text = await response.text();
+              try {
+                  return JSON.parse(text) as T;
+              } catch (e) {
+                  return text as unknown as T;
+              }
           });
         }
       }
