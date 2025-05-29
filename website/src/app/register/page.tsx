@@ -26,11 +26,12 @@ export default function RegisterPage() {
                     <div className="h-full overflow-y-auto">
                         <ResumeView resumeData={resumeData} />
                     </div>
-                    <RegistrationForm resumeData={enhancedData} />
-
+                    <RegistrationForm />
                 </BentoBox>
             ) : (
-                <RegistrationForm />
+                <div className="flex justify-center items-center h-full">
+                    <RegistrationForm />
+                </div>
             )}
         </PageLayout>
     );

@@ -40,26 +40,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     date_joined = models.DateTimeField(default=timezone.now)
 
-    base_resume = models.ForeignKey(
-        "resumes.Resume",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="base_for_user",
-        help_text="The user's designated base resume.",
-    )
-
-    # Fields required for PermissionsMixin if not using 'username'
-    # groups = models.ManyToManyField(...) - Handled by PermissionsMixin
-    # user_permissions = models.ManyToManyField(...) - Handled by PermissionsMixin
-
-    # No username field
-    # username = None
-
+    username = None
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = (
-        []
-    )  # No other fields required besides email and password for createsuperuser
+    REQUIRED_FIELDS = []
 
     objects = CustomUserManager()
 

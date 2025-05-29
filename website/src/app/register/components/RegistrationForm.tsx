@@ -11,6 +11,8 @@ import FormField from '@/components/ui/FormField';
 import { LargeText, SmallText } from '@/components/ui/Typography';
 import { registerUser } from '@/api/auth';
 import { useAuth } from '@/hooks/useAuth';
+import { attachBaseResume } from '@/api/resume';
+import { useResumeData } from '@/context/ResumeDataContext';
 
 // Zod validation schema
 const registrationSchema = z.object({
@@ -35,14 +37,12 @@ const registrationSchema = z.object({
 
 type FormData = z.infer<typeof registrationSchema>;
 
-interface RegistrationFormProps {
-    resumeData?: any;
-}
 
-export default function RegistrationForm({ resumeData }: RegistrationFormProps) {
+export default function RegistrationForm() {
     const [isSuccess, setIsSuccess] = useState(false);
     const router = useRouter();
     const { login } = useAuth();
+    const { resumeData: contextResumeData } = useResumeData();
 
     const {
         register,
@@ -51,7 +51,7 @@ export default function RegistrationForm({ resumeData }: RegistrationFormProps) 
     } = useForm<FormData>({
         resolver: zodResolver(registrationSchema),
         defaultValues: {
-            email: resumeData?.email || '',
+            email: contextResumeData?.enhanced_resume_data?.email || '',
             password: '',
             confirmPassword: '',
             agreeToTerms: false,
@@ -61,39 +61,55 @@ export default function RegistrationForm({ resumeData }: RegistrationFormProps) 
 
     const onSubmit = async (data: FormData) => {
         try {
-            const response = await registerUser({
+            const registrationApiResponse = await registerUser({
                 email: data.email,
                 password1: data.password,
                 password2: data.confirmPassword,
             });
 
-            console.log('Registration successful:', response);
+            console.log('Registration successful:', registrationApiResponse);
 
-            // Use the auth hook to handle login
-            if (response.user && response.access) {
+            if (registrationApiResponse.user && registrationApiResponse.access) {
                 const tokensForAuthHook = {
-                    access: response.access,
-                    // refresh token is handled by HttpOnly cookie
+                    access: registrationApiResponse.access,
                 };
                 const userForAuthHook = {
-                    id: response.user.pk,
-                    email: response.user.email
+                    id: registrationApiResponse.user.pk,
+                    email: registrationApiResponse.user.email
                 };
                 login(userForAuthHook, tokensForAuthHook);
+
+                const userId = registrationApiResponse.user.pk;
+                const resumeIdFromContext = contextResumeData?.id;
+
+                if (resumeIdFromContext && userId) {
+                    console.log(`Attempting to attach resumeId: ${resumeIdFromContext} to userId: ${userId}`);
+                    attachBaseResume(resumeIdFromContext, String(userId))
+                        .then((attachResponse: { success: boolean; message?: string }) => {
+                            if (attachResponse.success) {
+                                console.log('Background task: Resume linked to user successfully.', attachResponse.message);
+                            } else {
+                                console.error('Background task: Failed to link resume to user.', attachResponse.message);
+                            }
+                        })
+                        .catch((err: Error) => {
+                            console.error('Background task: Critical error during attachBaseResume call.', err.message);
+                        });
+                } else {
+                    if (!resumeIdFromContext) console.log('No resumeId found in context, skipping attachment.');
+                }
+
+                setIsSuccess(true);
+                setTimeout(() => {
+                    router.push('/dashboard');
+                }, 1000);
+
             } else {
-                console.error("Registration API response missing user or access token:", response);
+                console.error("Registration API response missing user or access token:", registrationApiResponse);
                 alert("Registration completed, but auto-login failed. Please try logging in manually.");
                 setIsSuccess(false);
                 return;
             }
-
-            // Show success state
-            setIsSuccess(true);
-
-            // Wait 1 second then redirect to dashboard
-            setTimeout(() => {
-                router.push('/dashboard');
-            }, 1000);
 
         } catch (error: any) {
             console.error('Registration failed:', error);

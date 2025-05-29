@@ -1,15 +1,21 @@
 import fetcher from '../lib/fetcher';
-import { ResumeResponse, TokenState } from '../types/resume'; // Adjusted path
+import { type EnhancedResumeData, type ResumeResponse as ResumeResponseType, type TokenState } from '@/types/resume';
 
 interface ProcessResumeParams {
   file: File;
   tokenState: TokenState; 
 }
 
+/**
+ * Processes a resume, potentially with captcha and demo token.
+ *
+ * @param {ProcessResumeParams} params - The parameters for processing the resume.
+ * @returns {Promise<ResumeResponseType>} A promise that resolves to the processed resume data.
+ */
 export const processResume = async ({
   file,
   tokenState,
-}: ProcessResumeParams): Promise<ResumeResponse> => {
+}: ProcessResumeParams): Promise<ResumeResponseType> => {
   const formData = new FormData();
   formData.append('resume_file', file);
 
@@ -23,9 +29,32 @@ export const processResume = async ({
     headers['X-Demo-Token'] = tokenState.token;
   }
 
-  return fetcher<ResumeResponse>('/api/onboard/process-resume/', {
+  return fetcher<ResumeResponseType>('/api/onboard/process-resume/', {
     method: 'POST',
     headers,
-    body: formData, // Pass FormData directly, fetcher will not stringify it if Content-Type is not application/json
+    body: formData,
   });
+};
+
+/**
+ * Attaches a resume to a user.
+ *
+ * @param {string} resumeId - The ID of the resume to attach.
+ * @param {string} userId - The ID of the user to attach the resume to.
+ * @returns {Promise<{ success: boolean; message?: string }>} A promise that resolves to an object indicating success or failure.
+ */
+export const attachBaseResume = async (resumeId: string, userId: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+        const response = await fetcher<{ message?: string, detail?: string, resume?: EnhancedResumeData }>('/resumes/attach-user/', { 
+            method: 'POST',
+            body: {
+                resume_id: resumeId,
+            },
+        });
+        return { success: true, message: response.message || 'Resume attached successfully' };
+    } catch (error: any) {
+        console.error('Error attaching resume to user:', error);
+        const errorMessage = error.data?.detail || error.data?.message || error.message || 'An unexpected error occurred while attaching resume.';
+        return { success: false, message: errorMessage };
+    }
 }; 

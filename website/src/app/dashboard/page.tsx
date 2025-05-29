@@ -7,12 +7,16 @@ import { Button } from '@/components/ui/button';
 import { LargeText, SmallText } from '@/components/ui/Typography';
 import { useAuth } from '@/hooks/useAuth';
 import { logoutUser } from '@/api/auth';
+import { useResumeData } from '@/context/ResumeDataContext';
+import ResumeView from '../upload/components/ResumeView';
 
 export default function Dashboard() {
     const router = useRouter();
     const { user, isLoading, isAuthenticated, logout } = useAuth();
+    const { resumeData: contextResumeData } = useResumeData();
 
     console.log('[Dashboard Render] isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'User:', user);
+    console.log('[Dashboard Render] Context Resume Data:', contextResumeData);
 
     // Redirect if not authenticated
     useEffect(() => {
@@ -57,6 +61,8 @@ export default function Dashboard() {
         return null; // This shouldn't render due to redirect, but just in case
     }
 
+    const enhancedContextResumeData = contextResumeData?.enhanced_resume_data;
+
     return (
         <div className="min-h-screen bg-black py-8">
             <div className="max-w-4xl mx-auto px-4">
@@ -65,11 +71,24 @@ export default function Dashboard() {
                         Dashboard
                     </LargeText>
                     <SmallText className="text-gray-600">
-                        Welcome to your Resume Maker dashboard
+                        Welcome {user.email} to your Resume Maker dashboard
                     </SmallText>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {/* Display Resume from Context if available */}
+                {enhancedContextResumeData && contextResumeData && (
+                    <BentoBox className="p-6 mb-8 w-full">
+                        <LargeText as="h2" className="mb-4 text-xl font-semibold text-gray-900">Your Current Resume Draft</LargeText>
+                        <div className="h-[500px] overflow-y-auto border border-gray-300 rounded-md">
+                            <ResumeView resumeData={contextResumeData} />
+                        </div>
+                        <SmallText className="mt-2 text-sm text-gray-500">
+                            This is the resume data currently loaded from your previous session. It will be linked to your account.
+                        </SmallText>
+                    </BentoBox>
+                )}
+
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
                     {/* User Info Card */}
                     <BentoBox className="p-6">
                         <div className="flex items-center justify-between mb-4">
@@ -145,18 +164,6 @@ export default function Dashboard() {
                             >
                                 Logout
                             </Button>
-                        </div>
-                    </BentoBox>
-                </div>
-
-                {/* Authentication Status */}
-                <div className="mt-8">
-                    <BentoBox className="p-4 bg-green-50 border-green-200">
-                        <div className="flex items-center">
-                            <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-                            <SmallText className="text-green-800">
-                                ✅ Successfully authenticated with JWT tokens
-                            </SmallText>
                         </div>
                     </BentoBox>
                 </div>

@@ -11,7 +11,6 @@ class SocialProfileSerializer(serializers.ModelSerializer):
 
 
 class BioSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(source="user.username", read_only=True)
     social_profiles = SocialProfileSerializer(many=True, read_only=True)
 
     class Meta:
@@ -19,7 +18,6 @@ class BioSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "user",
-            "username",
             "first_name",
             "last_name",
             "date_of_birth",
@@ -45,7 +43,6 @@ class BioSerializer(serializers.ModelSerializer):
         read_only_fields = (
             "id",
             "user",
-            "username",
             "created_at",
             "updated_at",
             "social_profiles",

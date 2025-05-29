@@ -3,6 +3,7 @@ from rest_framework import viewsets, permissions, generics, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
+from django.db import transaction # Import transaction
 
 from .models import Resume
 from .serializers import (
@@ -94,6 +95,59 @@ class ResumeViewSet(viewsets.ModelViewSet):
             full_serializer = ResumeSerializer(resume, context={"request": request})
             return Response(full_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=["post"], url_path="attach-user", permission_classes=[permissions.IsAuthenticated])
+    def attach_user_and_set_base(self, request):
+        resume_id = request.data.get("resume_id")
+        if not resume_id:
+            return Response(
+                {"error": "resume_id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = request.user
+
+        try:
+            # Get the resume. It could be an orphaned resume or one already belonging to the user.
+            resume_to_attach = Resume.objects.get(id=resume_id)
+        except Resume.DoesNotExist:
+            return Response(
+                {"detail": "Resume not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if the resume is already associated with another user and is their base resume
+        # This check might be too restrictive depending on business logic (e.g. admin re-assigning)
+        # For now, we assume a user can only attach a resume that is either unassigned or already theirs.
+        if resume_to_attach.user and resume_to_attach.user != user:
+             return Response(
+                {"error": "This resume is already associated with another user."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            with transaction.atomic():
+                # Set all other resumes for this user to is_base_resume=False
+                Resume.objects.filter(user=user, is_base_resume=True).update(
+                    is_base_resume=False
+                )
+
+                # Assign user and set as base resume
+                resume_to_attach.user = user
+                resume_to_attach.is_base_resume = True
+                resume_to_attach.save()
+            
+            # Serialize and return the updated resume
+            serializer = ResumeSerializer(resume_to_attach, context={"request": request})
+            return Response(
+                {"message": "Resume attached and set as base successfully.", "resume": serializer.data},
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            # Log the exception e
+            return Response(
+                {"error": f"An unexpected error occurred: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     def perform_destroy(self, instance):
         # Prevent deleting the base resume through the standard DELETE method
