@@ -184,127 +184,76 @@ class OnboardingResumeUploadView(views.APIView):
             "OnboardingResumeUploadView: Step 4.3 - Performing Database Duplicate Checks."
         )
         if contact_details:
-            logger.info(
-                f"OnboardingResumeUploadView: Step 4.3 - Contact details available for DB checks: {contact_details}"
-            )
             email_from_snippet = contact_details.get("email")
             phone_from_snippet = contact_details.get("phone")
-            logger.debug(
-                f"OnboardingResumeUploadView: Step 4.3 - Email from snippet: '{email_from_snippet}', Phone from snippet: '{phone_from_snippet}'"
+            logger.info(
+                f"OnboardingResumeUploadView: Step 4.3 - Contact details available for DB checks. Email: '{email_from_snippet}', Phone: '{phone_from_snippet}'"
             )
 
-            # 4.3.1 Check for existing Resume by email or phone
-            logger.debug(
-                "OnboardingResumeUploadView: Step 4.3.1 - Checking for existing Resume by email or phone."
-            )
+            # Case 1: Check for existing User by email
+            if email_from_snippet and isinstance(email_from_snippet, str) and email_from_snippet.strip():
+                logger.debug("OnboardingResumeUploadView: Step 4.3.1 - Checking for existing User by email.")
+                try:
+                    existing_user = User.objects.filter(email__iexact=email_from_snippet.strip()).first()
+                    if existing_user:
+                        logger.info(f"OnboardingResumeUploadView: Step 4.3.1 - Existing user (ID: {existing_user.id}) found matching email: {email_from_snippet.strip()}")
+                        return Response(
+                            {
+                                "message": "A user account matching the provided email already exists. Please log in to upload or manage your resumes.",
+                                "resume_id": None,
+                                "enhanced_resume_data": None,
+                                "is_duplicate_user": True,
+                            },
+                            status=status.HTTP_200_OK,
+                        )
+                    else:
+                        logger.info(f"OnboardingResumeUploadView: Step 4.3.1 - No existing user found for email: {email_from_snippet.strip()}.")
+                except Exception as e_user_check:
+                    logger.error(f"OnboardingResumeUploadView: Step 4.3.1 - Error during user duplicate check: {type(e_user_check).__name__} - {e_user_check}")
+            else:
+                logger.info("OnboardingResumeUploadView: Step 4.3.1 - Skipped user duplicate check as no email was available/valid from snippet.")
+
+            # Case 2: If no existing User was found, check for existing Resume by email or phone
+            logger.debug("OnboardingResumeUploadView: Step 4.3.2 - Checking for existing Resume by email or phone.")
             resume_query = Q()
-            if (
-                email_from_snippet
-                and isinstance(email_from_snippet, str)
-                and email_from_snippet.strip()
-            ):
+            if email_from_snippet and isinstance(email_from_snippet, str) and email_from_snippet.strip():
                 resume_query |= Q(email__iexact=email_from_snippet.strip())
-            if (
-                phone_from_snippet
-                and isinstance(phone_from_snippet, str)
-                and phone_from_snippet.strip()
-            ):
+            if phone_from_snippet and isinstance(phone_from_snippet, str) and phone_from_snippet.strip():
                 resume_query |= Q(phone__iexact=phone_from_snippet.strip())
-            logger.debug(
-                f"OnboardingResumeUploadView: Step 4.3.1 - Constructed resume_query: {resume_query}"
-            )
+            
+            logger.debug(f"OnboardingResumeUploadView: Step 4.3.2 - Constructed resume_query: {resume_query}")
 
             if resume_query:
-                logger.info(
-                    f"OnboardingResumeUploadView: Step 4.3.1 - Executing Resume.objects.filter with query: {resume_query}"
-                )
-                existing_resume = (
-                    Resume.objects.filter(resume_query).order_by("-created_at").first()
-                )
+                existing_resume = Resume.objects.filter(resume_query).order_by("-created_at").first()
                 if existing_resume:
+                    logger.info(f"OnboardingResumeUploadView: Step 4.3.2 - Existing resume (ID: {existing_resume.id}) found matching contact details. Details: {existing_resume}")
+                    serialized_existing_resume = OnboardingResumeCreateSerializer(existing_resume).data
                     logger.info(
-                        f"OnboardingResumeUploadView: Step 4.3.1 - Existing resume (ID: {existing_resume.id}) found. Details: {existing_resume}"
+                        f"OnboardingResumeUploadView: Step 4.3.2 - Serialized existing resume data for response. Preview: {str(serialized_existing_resume)[:200]}"
                     )
-
-                    # Serialize the existing_resume to get enhanced_resume_data
-                    # Assuming OnboardingResumeCreateSerializer can serialize a Resume instance to the desired format
-                    serialized_existing_resume = OnboardingResumeCreateSerializer(
-                        existing_resume
-                    ).data
-                    logger.info(
-                        f"OnboardingResumeUploadView: Step 4.3.1 - Serialized existing resume data for response. Preview: {str(serialized_existing_resume)[:200]}"
-                    )
-
                     return Response(
                         {
                             "message": "An existing resume matching the provided contact details was found.",
                             "resume_id": existing_resume.id,
-                            "enhanced_resume_data": serialized_existing_resume,  # Include the full resume data
-                            "contact_details_found": contact_details,
+                            "enhanced_resume_data": serialized_existing_resume,
                             "is_duplicate": True,
                         },
                         status=status.HTTP_200_OK,
                     )
                 else:
-                    logger.info(
-                        "OnboardingResumeUploadView: Step 4.3.1 - No existing resume found matching contact details."
-                    )
+                    logger.info("OnboardingResumeUploadView: Step 4.3.2 - No existing resume found matching contact details.")
             else:
-                logger.info(
-                    "OnboardingResumeUploadView: Step 4.3.1 - Resume query is empty, skipping resume duplicate check."
-                )
+                logger.info("OnboardingResumeUploadView: Step 4.3.2 - Resume query is empty (no valid email/phone from snippet), skipping resume duplicate check.")
+            
+            # Case 3: No User and No Resume found (Proceed to main processing)
+            logger.info("OnboardingResumeUploadView: Step 4.3.3 - No existing user or resume found based on extracted contact details. Proceeding to main AI processing.")
 
-            # 4.3.2 If no Resume found, check for existing User by email (if email was extracted)
-            logger.debug(
-                "OnboardingResumeUploadView: Step 4.3.2 - Checking for existing User by email."
-            )
-            if (
-                email_from_snippet
-                and isinstance(email_from_snippet, str)
-                and email_from_snippet.strip()
-            ):
-                try:
-                    existing_user = User.objects.filter(
-                        email__iexact=email_from_snippet.strip()
-                    ).first()
-                    if existing_user:
-                        logger.info(
-                            f"OnboardingResumeUploadView: Step 4.3.2 - Existing user (ID: {existing_user.id}) found matching email from snippet."
-                        )
-                        return Response(
-                            {
-                                "message": "A user account matching the provided email already exists. Please log in to upload or manage your resumes.",
-                                "user_id": existing_user.id,
-                                "contact_details_found": contact_details,
-                                "is_duplicate_user": True,  # Explicit flag
-                            },
-                            status=status.HTTP_200_OK,
-                        )
-                    else:
-                        logger.info(
-                            "OnboardingResumeUploadView: Step 4.3.2 - No existing user found for the email."
-                        )
-                except Exception as e_user_check:
-                    logger.error(
-                        f"OnboardingResumeUploadView: Step 4.3.2 - Error during user duplicate check: {type(e_user_check).__name__} - {e_user_check}"
-                    )
-            else:
-                logger.info(
-                    "OnboardingResumeUploadView: Step 4.3.2 - Skipped user duplicate check as no email was available/valid from snippet."
-                )
-
+        else: # No contact_details extracted
             logger.info(
-                "OnboardingResumeUploadView: Step 4.3 - No duplicate resume or user found based on extracted contact details (or checks were skipped)."
+                "OnboardingResumeUploadView: Step 4.3 - Skipped DB duplicate checks as contact details were not extracted. Proceeding to main AI processing."
             )
-        else:
-            logger.info(
-                "OnboardingResumeUploadView: Step 4.3 - Skipped DB duplicate checks as contact details were not extracted."
-            )
-            if extracted_text:
-                logger.info(
-                    "OnboardingResumeUploadView: Proceeding to main flow as contact details were not extracted for preliminary DB checks."
-                )
-            # If extracted_text itself was None, it was already logged.
+            # If extracted_text itself was None, it was already logged. Note: The original code had an 'if extracted_text:' here,
+            # but it's redundant if we are just proceeding. The main processing step will handle if extracted_text is None.
 
         # --- 5. Main AI Processing ---
         logger.debug("OnboardingResumeUploadView: Step 5 - Main AI Processing started.")

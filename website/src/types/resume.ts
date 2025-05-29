@@ -63,9 +63,11 @@ export interface EnhancedResumeData {
 }
 
 export interface ResumeResponse {
-  id?: string; // Kept from previous, though not in new JSON example. Optional now.
   message?: string; // Optional message from backend
-  enhanced_resume_data: EnhancedResumeData; // Changed from structured_resume
+  enhanced_resume_data?: EnhancedResumeData | null; // Can be null if user exists
+  resume_id?: string | null; // Explicitly add resume_id, can be null
+  is_duplicate_user?: boolean; // Flag for existing user
+  is_duplicate?: boolean; // Flag for existing resume
 }
 
 // These might be better placed in a more specific types file like `upload.ts` if not broadly used

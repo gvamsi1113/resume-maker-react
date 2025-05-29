@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
 from django.db import transaction # Import transaction
+import logging
 
 from .models import Resume
 from .serializers import (
@@ -13,6 +14,7 @@ from .serializers import (
 )
 from bio.models import Bio  # Import Bio for create_base action
 
+logger = logging.getLogger(__name__)
 
 class ResumeViewSet(viewsets.ModelViewSet):
     """
@@ -51,13 +53,17 @@ class ResumeViewSet(viewsets.ModelViewSet):
     # Custom action to get ONLY the base resume easily
     @action(detail=False, methods=["get"], url_path="base")
     def get_base_resume(self, request):
+        logger.info(f"[get_base_resume] Called by user: {request.user} (ID: {request.user.id if request.user else 'Anonymous'})")
         # Use the filtered queryset
         base_resume = self.get_queryset().filter(is_base_resume=True).first()
         if not base_resume:
+            logger.warning(f"[get_base_resume] Base resume not found for user ID: {request.user.id if request.user else 'Anonymous'}")
             return Response(
-                {"detail": "Base resume not found."}, status=status.HTTP_404_NOT_FOUND
+                {"detail": "Base resume not found."},
+                status=status.HTTP_404_NOT_FOUND,
             )
-        serializer = self.get_serializer(base_resume)  # Uses ResumeSerializer
+        logger.info(f"[get_base_resume] Found base resume (ID: {base_resume.id}) for user ID: {request.user.id if request.user else 'Anonymous'}")
+        serializer = self.get_serializer(base_resume)
         return Response(serializer.data)
 
     # Custom action to create the initial base resume

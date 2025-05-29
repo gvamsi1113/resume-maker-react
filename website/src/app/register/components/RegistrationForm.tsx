@@ -80,7 +80,7 @@ export default function RegistrationForm() {
                 login(userForAuthHook, tokensForAuthHook);
 
                 const userId = registrationApiResponse.user.pk;
-                const resumeIdFromContext = contextResumeData?.id;
+                const resumeIdFromContext = contextResumeData?.resume_id;
 
                 if (resumeIdFromContext && userId) {
                     console.log(`Attempting to attach resumeId: ${resumeIdFromContext} to userId: ${userId}`);

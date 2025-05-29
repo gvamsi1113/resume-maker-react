@@ -162,10 +162,7 @@ The output MUST be a SINGLE VALID JSON object with the following structure:
 def _build_contact_extraction_prompt(text_snippet: str) -> str:
     """Constructs a prompt for Gemini to extract contact details from a text snippet."""
 
-    prompt = f"""Analyze the following text snippet and extract contact information.
-Return ONLY a single, valid JSON object matching the structure below.
-Ensure all specified keys (first_name, last_name, email, phone) are present in your JSON response.
-If a value for a key is not found in the text, use an empty string "" for that key.
+    prompt = f"""Extract a single, valid JSON object with all the keys - first_name, last_name, email, phone. If a value for a key is not found in the text, use an empty string "" for that key. RETURN ONLY THE JSON OBJECT, NO OTHER TEXT, MARKDOWN, EXPLANATIONS, OR ANY CHARACTERS BEFORE THE OPENING '{{' OR AFTER THE CLOSING '}}' ARE ALLOWED. DOUBLE CHECK YOUR FINAL OUTPUT.
 
 Input text:
 ---
@@ -444,7 +441,7 @@ def extract_contact_details_from_text_snippet(
         return None  # Or return dict with empty strings if that's preferred for empty input
 
     logger.info(
-        f"Attempting to extract contact details from snippet: '{text_snippet_100_chars[:50]}...'"
+        f"Attempting to extract contact details from snippet: '{text_snippet_100_chars[:20]}...'"
     )
 
     prompt = _build_contact_extraction_prompt(text_snippet_100_chars)

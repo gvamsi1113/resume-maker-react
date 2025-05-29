@@ -45,7 +45,7 @@ export const processResume = async ({
  */
 export const attachBaseResume = async (resumeId: string, userId: string): Promise<{ success: boolean; message?: string }> => {
     try {
-        const response = await fetcher<{ message?: string, detail?: string, resume?: EnhancedResumeData }>('/resumes/attach-user/', { 
+        const response = await fetcher<{ message?: string, detail?: string, resume?: EnhancedResumeData }>('/api/resumes/attach-user/', {
             method: 'POST',
             body: {
                 resume_id: resumeId,
@@ -57,4 +57,15 @@ export const attachBaseResume = async (resumeId: string, userId: string): Promis
         const errorMessage = error.data?.detail || error.data?.message || error.message || 'An unexpected error occurred while attaching resume.';
         return { success: false, message: errorMessage };
     }
-}; 
+};
+
+/**
+ * Fetches the base resume for the authenticated user.
+ *
+ * @returns {Promise<EnhancedResumeData>} A promise that resolves to the base resume data.
+ */
+export const getBaseResume = async (): Promise<EnhancedResumeData> => {
+  return fetcher<EnhancedResumeData>('/api/resumes/base/', {
+    method: 'GET',
+  });
+};

@@ -64,11 +64,22 @@ export default function UploadPage() {
     // useEffect to handle navigation after successful upload with a delay for animations
     useEffect(() => {
         if (isSuccess && responseData) {
-            console.log('Upload successful, setting resume data and preparing to redirect...');
-            setResumeData(responseData);
+            console.log('Upload successful, processing response:', responseData);
+            setResumeData(responseData); // Set resume data regardless for context
+
             const timer = setTimeout(() => {
-                console.log('Redirecting now to /register');
-                router.push('/register');
+                if (responseData.is_duplicate_user) {
+                    console.log('Redirecting now to /login (existing user)');
+                    router.push('/login');
+                } else if (responseData.is_duplicate) {
+                    // Existing resume, but not necessarily an existing user account linked yet
+                    console.log('Redirecting now to /register (existing resume)');
+                    router.push('/register');
+                } else {
+                    // New resume, no duplicate user or resume found
+                    console.log('Redirecting now to /register (new resume)');
+                    router.push('/register');
+                }
             }, REDIRECT_DELAY_MS);
 
             return () => clearTimeout(timer);
