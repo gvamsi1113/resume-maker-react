@@ -216,7 +216,7 @@ const ResumeDocument: React.FC<ResumeDocumentProps> = ({ resume }) => {
 
                 {/* Summary */}
                 {resume.summary && (
-                    <View style={styles.section} wrap={false}>
+                    <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Summary</Text>
                         <Text style={styles.paragraph}>{resume.summary}</Text>
                     </View>
@@ -227,7 +227,7 @@ const ResumeDocument: React.FC<ResumeDocumentProps> = ({ resume }) => {
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Work Experience</Text>
                         {resume.work.map((exp: WorkExperience, index: number) => (
-                            <View key={index} style={styles.subsection} wrap={false}>
+                            <View key={index} style={styles.subsection}>
                                 <View style={styles.jobTitleAndDatesRow}>
                                     <View style={styles.jobTitleWrapper}>
                                         {exp.position && <Text style={styles.jobTitle}>{exp.position}</Text>}
@@ -254,7 +254,7 @@ const ResumeDocument: React.FC<ResumeDocumentProps> = ({ resume }) => {
 
                 {/* Education */}
                 {resume.education && resume.education.length > 0 && (
-                    <View style={styles.section} wrap={false}>
+                    <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Education</Text>
                         {resume.education.map((edu: EducationEntry, index: number) => (
                             <View key={index} style={styles.subsection}>
@@ -284,7 +284,7 @@ const ResumeDocument: React.FC<ResumeDocumentProps> = ({ resume }) => {
 
                 {/* Skills */}
                 {resume.skills && resume.skills.length > 0 && (
-                    <View style={styles.section} wrap={false}>
+                    <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Skills</Text>
                         <View style={styles.skillsContainer}>
                             {resume.skills.map((skillCat: SkillCategory, catIndex: number) => (
@@ -303,7 +303,7 @@ const ResumeDocument: React.FC<ResumeDocumentProps> = ({ resume }) => {
 
                 {/* Projects */}
                 {resume.projects && resume.projects.length > 0 && (
-                    <View style={styles.section} wrap={false}>
+                    <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Projects</Text>
                         {resume.projects.map((proj: ProjectEntry, index: number) => (
                             <View key={index} style={styles.subsection}>
@@ -320,7 +320,7 @@ const ResumeDocument: React.FC<ResumeDocumentProps> = ({ resume }) => {
 
                 {/* Certifications */}
                 {resume.certificates && resume.certificates.length > 0 && (
-                    <View style={styles.section} wrap={false}>
+                    <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Certifications</Text>
                         {resume.certificates.map((cert: CertificateEntry, index: number) => (
                             <View key={index} style={styles.subsection}>
@@ -335,7 +335,7 @@ const ResumeDocument: React.FC<ResumeDocumentProps> = ({ resume }) => {
 
                 {/* Languages */}
                 {resume.languages && resume.languages.length > 0 && (
-                    <View style={styles.section} wrap={false}>
+                    <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Languages</Text>
                         <Text style={styles.skillListText}>{resume.languages.join(', ')}</Text>
                     </View>
@@ -346,4 +346,4 @@ const ResumeDocument: React.FC<ResumeDocumentProps> = ({ resume }) => {
     );
 };
 
-export default ResumeDocument; 
+export default ResumeDocument;
