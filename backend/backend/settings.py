@@ -1,4 +1,4 @@
-﻿import os
+import os
 import dj_database_url
 from dotenv import load_dotenv
 from pathlib import Path
@@ -8,9 +8,7 @@ from corsheaders.defaults import default_headers
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
-SECRET_KEY = os.environ.get(
-    "SECRET_KEY", "django-insecure-!!!REPLACE-ME-SECRET-KEY!!!"  # MUST REPLACE IN .env
-)
+SECRET_KEY = os.environ["SECRET_KEY"]
 DEBUG = os.environ.get("DEBUG", "False") == "True"
 ALLOWED_HOSTS = os.environ.get(
     "DJANGO_ALLOWED_HOSTS", "127.0.0.1 localhost [::1]"
@@ -29,11 +27,11 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
-    # "authentication", # No longer needed
     "bio",
     "resumes",
     "generation",
     "onboarding",
+    "jobposts",
     "corsheaders",
     "allauth",
     "allauth.account",

@@ -5,6 +5,8 @@ from django.db import models
 # from django.contrib.auth.models import User # No longer directly import User
 from django.conf import settings  # Import settings
 from django.db.models import Q  # For constraints condition
+# Import JobPost model, ensure correct relative import
+from jobposts.models import JobPost
 
 
 class Resume(models.Model):
@@ -23,6 +25,23 @@ class Resume(models.Model):
     source_job_description = models.TextField(blank=True, null=True)
     source_job_url = models.URLField(max_length=1024, blank=True, null=True)
     source_company_name = models.CharField(max_length=150, blank=True, null=True)
+
+    # Link to a specific JobPost a user might be applying to with this resume
+    associated_job_post = models.ForeignKey(
+        JobPost,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="associated_resumes",
+        help_text="The specific job post this resume is tailored for or associated with."
+    )
+
+    tracking_link = models.URLField(
+        max_length=1024, 
+        blank=True, 
+        null=True, 
+        help_text="Link to track the application status for this resume, if applicable."
+    )
 
     # Fields to store the AI's enhanced_resume_data directly
     # Top-level contact and summary block

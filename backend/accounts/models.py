@@ -5,6 +5,7 @@ from django.contrib.auth.models import (
 )
 from django.db import models
 from django.utils import timezone
+import uuid
 
 
 class CustomUserManager(BaseUserManager):
@@ -30,6 +31,7 @@ class CustomUserManager(BaseUserManager):
 
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=150, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
@@ -37,6 +39,15 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     date_joined = models.DateTimeField(default=timezone.now)
+
+    base_resume = models.ForeignKey(
+        "resumes.Resume",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="base_for_user",
+        help_text="The user's designated base resume.",
+    )
 
     # Fields required for PermissionsMixin if not using 'username'
     # groups = models.ManyToManyField(...) - Handled by PermissionsMixin
