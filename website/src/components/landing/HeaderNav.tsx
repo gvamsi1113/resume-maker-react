@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import BentoBox from '@/components/ui/BentoBox';
 import { LargeText } from '@/components/ui/Typography';
+import Logo from '@/components/ui/Logo';
 
 /**
  * Header navigation component containing logo, navigation links and CTA button
@@ -11,17 +11,7 @@ import { LargeText } from '@/components/ui/Typography';
  */
 const HeaderNav: React.FC = () => (
     <BentoBox className="flex flex-row justify-between items-center w-full p-0">
-        <div className="flex items-center gap-[1rem] p-[1.2rem] h-full">
-            <Image
-                src="/Rezoome.svg"
-                alt="Rezoome Logo"
-                width={40}
-                height={40}
-                className="h-full w-auto object-contain"
-                priority
-            />
-            <span className="text-[1.5rem] font-bold">Rezoome</span>
-        </div>
+        <Logo />
         <nav className="flex items-center gap-[3rem] p-[.5rem] h-full">
             <a href="#" className="hover:text-[var(--color-white)] text-sm text-[var(--color-gray-light)]">Pricing</a>
             <a href="#" className="hover:text-[var(--color-white)] text-sm text-[var(--color-gray-light)]">Sign In</a>

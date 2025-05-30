@@ -12,7 +12,7 @@ import { twMerge } from 'tailwind-merge';
  * @param as - HTML element to render (default: p)
  */
 const LargeText: React.FC<{ className?: string, fontSizeClass?: string, colorClass?: string, children: React.ReactNode, as?: React.ElementType }> =
-    ({ className, fontSizeClass = 'text-5xl', colorClass = 'bg-gradient-to-t from-[var(--color-gray-medium)] to-[var(--color-white)] bg-clip-text text-[var(--color-transparent)]', children, as: Component = 'p' }) => (
+    ({ className, fontSizeClass = 'text-3xl', colorClass = 'bg-gradient-to-t from-[var(--color-gray-medium)] to-[var(--color-white)] bg-clip-text text-[var(--color-transparent)]', children, as: Component = 'p' }) => (
         <Component className={twMerge(
             fontSizeClass,
             colorClass,

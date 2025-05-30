@@ -69,7 +69,6 @@ const GridBentoBox: React.FC<BentoBoxProps> = ({
     'overflow-hidden',
     'grid',
     'gap-[var(--main-gap)]',
-    'rounded-[var(--large-rounding)]',
     className
   );
 

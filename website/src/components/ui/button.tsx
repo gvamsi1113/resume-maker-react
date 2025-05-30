@@ -12,7 +12,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         return (
             <button
                 ref={ref}
-                className={`px-4 py-2 rounded-[.7rem] transition-colors ${className}`}
+                className={`px-4 py-2 rounded-[.7rem] transition-colors cursor-pointer ${className}`}
                 {...props}
             >
                 {children}

@@ -26,6 +26,7 @@
 
 :root {
   --main-gap: 1rem; /* Universal spacing unit */
+  --menu-gap: 3rem; /* Universal spacing unit for menu items */
   --large-rounding: 1.5rem; /* Standard large border radius */
 
   /* Primary Color HSL values - base for dynamic color generation */
@@ -184,4 +185,10 @@ a {
   display: inline-flex;
   flex-direction: column;
   animation: scroll-up 4s linear infinite;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-glass-border) transparent;
+  scrollbar-gutter: stable;
 }
