@@ -40,10 +40,9 @@ export const processResume = async ({
  * Attaches a resume to a user.
  *
  * @param {string} resumeId - The ID of the resume to attach.
- * @param {string} userId - The ID of the user to attach the resume to.
  * @returns {Promise<{ success: boolean; message?: string }>} A promise that resolves to an object indicating success or failure.
  */
-export const attachBaseResume = async (resumeId: string, userId: string): Promise<{ success: boolean; message?: string }> => {
+export const attachBaseResume = async (resumeId: string): Promise<{ success: boolean; message?: string }> => {
     try {
         const response = await fetcher<{ message?: string, detail?: string, resume?: EnhancedResumeData }>('/api/resumes/attach-user/', {
             method: 'POST',
