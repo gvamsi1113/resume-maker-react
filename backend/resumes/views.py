@@ -3,7 +3,8 @@ from rest_framework import viewsets, permissions, generics, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
-from django.db import transaction # Import transaction
+from django.db import transaction  # Import transaction
+from rest_framework.pagination import PageNumberPagination  # Import for pagination
 import logging
 
 from .models import Resume
@@ -11,10 +12,12 @@ from .serializers import (
     ResumeSerializer,
     ResumeListSerializer,
     BaseResumeCreateSerializer,
+    RecentApplicationItemSerializer,  # Import new serializer
 )
 from bio.models import Bio  # Import Bio for create_base action
 
 logger = logging.getLogger(__name__)
+
 
 class ResumeViewSet(viewsets.ModelViewSet):
     """
@@ -53,16 +56,22 @@ class ResumeViewSet(viewsets.ModelViewSet):
     # Custom action to get ONLY the base resume easily
     @action(detail=False, methods=["get"], url_path="base")
     def get_base_resume(self, request):
-        logger.info(f"[get_base_resume] Called by user: {request.user} (ID: {request.user.id if request.user else 'Anonymous'})")
+        logger.info(
+            f"[get_base_resume] Called by user: {request.user} (ID: {request.user.id if request.user else 'Anonymous'})"
+        )
         # Use the filtered queryset
         base_resume = self.get_queryset().filter(is_base_resume=True).first()
         if not base_resume:
-            logger.warning(f"[get_base_resume] Base resume not found for user ID: {request.user.id if request.user else 'Anonymous'}")
+            logger.warning(
+                f"[get_base_resume] Base resume not found for user ID: {request.user.id if request.user else 'Anonymous'}"
+            )
             return Response(
                 {"detail": "Base resume not found."},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        logger.info(f"[get_base_resume] Found base resume (ID: {base_resume.id}) for user ID: {request.user.id if request.user else 'Anonymous'}")
+        logger.info(
+            f"[get_base_resume] Found base resume (ID: {base_resume.id}) for user ID: {request.user.id if request.user else 'Anonymous'}"
+        )
         serializer = self.get_serializer(base_resume)
         return Response(serializer.data)
 
@@ -102,7 +111,12 @@ class ResumeViewSet(viewsets.ModelViewSet):
             return Response(full_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=["post"], url_path="attach-user", permission_classes=[permissions.IsAuthenticated])
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="attach-user",
+        permission_classes=[permissions.IsAuthenticated],
+    )
     def attach_user_and_set_base(self, request):
         resume_id = request.data.get("resume_id")
         if not resume_id:
@@ -120,12 +134,12 @@ class ResumeViewSet(viewsets.ModelViewSet):
             return Response(
                 {"detail": "Resume not found."}, status=status.HTTP_404_NOT_FOUND
             )
-        
+
         # Check if the resume is already associated with another user and is their base resume
         # This check might be too restrictive depending on business logic (e.g. admin re-assigning)
         # For now, we assume a user can only attach a resume that is either unassigned or already theirs.
         if resume_to_attach.user and resume_to_attach.user != user:
-             return Response(
+            return Response(
                 {"error": "This resume is already associated with another user."},
                 status=status.HTTP_403_FORBIDDEN,
             )
@@ -141,11 +155,16 @@ class ResumeViewSet(viewsets.ModelViewSet):
                 resume_to_attach.user = user
                 resume_to_attach.is_base_resume = True
                 resume_to_attach.save()
-            
+
             # Serialize and return the updated resume
-            serializer = ResumeSerializer(resume_to_attach, context={"request": request})
+            serializer = ResumeSerializer(
+                resume_to_attach, context={"request": request}
+            )
             return Response(
-                {"message": "Resume attached and set as base successfully.", "resume": serializer.data},
+                {
+                    "message": "Resume attached and set as base successfully.",
+                    "resume": serializer.data,
+                },
                 status=status.HTTP_200_OK,
             )
         except Exception as e:
@@ -161,3 +180,28 @@ class ResumeViewSet(viewsets.ModelViewSet):
             # Raise validation error which results in 400 Bad Request
             raise serializers.ValidationError("The Base Resume cannot be deleted.")
         instance.delete()
+
+
+# View for Recent Applications
+class RecentApplicationsListView(generics.ListAPIView):
+    """
+    Lists resumes associated with job posts for the authenticated user, paginated.
+    This represents recent applications.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = RecentApplicationItemSerializer
+    pagination_class = PageNumberPagination  # Use standard DRF pagination
+
+    def get_queryset(self):
+        user = self.request.user
+        # Filter resumes that have an associated_job_post (i.e., are applications)
+        # and belong to the current user.
+        # Use select_related to fetch job_post details efficiently.
+        return (
+            Resume.objects.filter(user=user, associated_job_post__isnull=False)
+            .select_related("associated_job_post")
+            .order_by(
+                "-updated_at"
+            )  # Or perhaps by job_post.created_at or resume.created_at
+        )

@@ -1,6 +1,7 @@
 # backend/resumes/serializers.py
 from rest_framework import serializers
 from .models import Resume
+from jobposts.models import JobPost  # Import JobPost
 from bio.serializers import SocialProfileSerializer  # Import for merging
 from bio.models import Bio  # Needed to fetch Bio data
 
@@ -152,3 +153,30 @@ class OnboardingResumeCreateSerializer(serializers.ModelSerializer):
         # but DRF will infer basic validation from model fields (e.g., EmailField, URLField, max_length).
         # Since most fields are CharField/TextField/JSONField with blank=True or default,
         # they are already quite flexible.
+
+
+# Serializers for Recent Applications
+class RecentApplicationJobPostSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = JobPost
+        fields = ["id", "job_title", "company_name", "source_url", "apply_link"]
+
+
+class RecentApplicationItemSerializer(serializers.ModelSerializer):
+    job_post = RecentApplicationJobPostSummarySerializer(
+        source="associated_job_post", read_only=True
+    )
+    resume_id = serializers.UUIDField(source="id", read_only=True)
+    resume_name = serializers.CharField(source="name", read_only=True)
+    resume_updated_at = serializers.DateTimeField(source="updated_at", read_only=True)
+    is_base_resume = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Resume
+        fields = [
+            "resume_id",
+            "resume_name",
+            "resume_updated_at",
+            "job_post",
+            "is_base_resume",
+        ]

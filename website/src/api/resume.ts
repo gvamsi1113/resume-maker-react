@@ -1,5 +1,6 @@
 import fetcher from '../lib/fetcher';
 import { type EnhancedResumeData, type ResumeResponse as ResumeResponseType, type TokenState } from '@/types/resume';
+import { type PaginatedRecentApplicationsResponse } from '@/types/applications';
 
 interface ProcessResumeParams {
   file: File;
@@ -65,6 +66,26 @@ export const attachBaseResume = async (resumeId: string): Promise<{ success: boo
  */
 export const getBaseResume = async (): Promise<EnhancedResumeData> => {
   return fetcher<EnhancedResumeData>('/api/resumes/base/', {
+    method: 'GET',
+  });
+};
+
+/**
+ * Fetches a paginated list of recent applications (resumes associated with job posts).
+ *
+ * @param {number} [page=1] - The page number to fetch.
+ * @param {number} [pageSize=10] - The number of items per page.
+ * @returns {Promise<PaginatedRecentApplicationsResponse>} A promise that resolves to the paginated list of recent applications.
+ */
+export const getRecentApplications = async (
+  page: number = 1,
+  pageSize: number = 10
+): Promise<PaginatedRecentApplicationsResponse> => {
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    page_size: pageSize.toString(),
+  });
+  return fetcher<PaginatedRecentApplicationsResponse>(`/api/resumes/recent-applications/?${queryParams.toString()}`, {
     method: 'GET',
   });
 };
