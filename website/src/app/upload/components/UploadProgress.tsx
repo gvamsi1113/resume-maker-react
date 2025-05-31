@@ -129,7 +129,7 @@ const useUploadDisplayLogic = ({ progress, error, isWaitingForCaptcha, isSuccess
             IconComponent: Loader2,
             hookMessage: null, // Messages are cycled by the component
             messageColorClass: DEFAULT_MESSAGE_COLOR_CLASS,
-            transitionStyle: 'width 100s linear', // Very slow fill for the last 1%
+            transitionStyle: 'width 100s linear', // Very slow fill for the 20-99%
             isPerfectingState: true,
         };
     } else if (progress === 0) {
@@ -154,7 +154,7 @@ const useUploadDisplayLogic = ({ progress, error, isWaitingForCaptcha, isSuccess
         };
     } else { // Fallback for progress === 100, but not yet isSuccess (e.g., brief moment before FINALIZING_MESSAGE kicks in elsewhere or if isSuccess is delayed)
         return {
-            displayProgress: 100,
+            displayProgress: 99,
             barColorClass: 'bg-blue-500',
             IconComponent: Loader2,
             hookMessage: FINALIZING_MESSAGE,
@@ -175,7 +175,7 @@ const useUploadDisplayLogic = ({ progress, error, isWaitingForCaptcha, isSuccess
  */
 export function UploadProgress({ progress, error, isWaitingForCaptcha, isSuccess, captchaSubmitted }: UploadProgressProps): React.ReactElement {
     const {
-        displayProgress,
+        displayProgress: targetDisplayProgress, // Renamed for clarity
         barColorClass,
         IconComponent,
         hookMessage,
@@ -191,9 +191,20 @@ export function UploadProgress({ progress, error, isWaitingForCaptcha, isSuccess
     });
 
     const [currentDisplayMessage, setCurrentDisplayMessage] = useState<string | null>(null);
+    const [currentBarWidth, setCurrentBarWidth] = useState<number>(0); // State for animated bar width
     const messageSequenceRef = useRef<string[]>([]);
     const currentMessageIndexRef = useRef<number>(0);
     const messageIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+
+    useEffect(() => {
+        // Effect to animate the bar width
+        // Using requestAnimationFrame ensures the update happens in the next frame,
+        // allowing a transition from the previous state (or initial 0%).
+        const animationFrameId = requestAnimationFrame(() => {
+            setCurrentBarWidth(targetDisplayProgress);
+        });
+        return () => cancelAnimationFrame(animationFrameId); // Cleanup
+    }, [targetDisplayProgress]);
 
     useEffect(() => {
         if (isPerfectingState) {
@@ -253,7 +264,7 @@ export function UploadProgress({ progress, error, isWaitingForCaptcha, isSuccess
                 <div
                     className={`h-full ${barColorClass}`}
                     style={{
-                        width: `${displayProgress}%`,
+                        width: `${currentBarWidth}%`, // Use currentBarWidth for animated width
                         transition: transitionStyle
                     }}
                 />
