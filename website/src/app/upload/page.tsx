@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import BentoBox from '@/components/ui/BentoBox';
 import { UploadHeader } from './components/UploadHeader';
 import { UploadFlow } from './components/UploadFlow';
@@ -27,6 +28,7 @@ const REDIRECT_DELAY_MS = 2000;
  * @returns {JSX.Element} The upload page component
  */
 export default function UploadPage() {
+    const { isAuthenticated, isLoading: authIsLoading } = useAuth();
     const router = useRouter();
     const { setResumeData } = useResumeData();
     const { tokenState, getToken, validateCaptcha } = useDemoToken();
@@ -86,6 +88,13 @@ export default function UploadPage() {
         }
     }, [isSuccess, responseData, router, setResumeData]);
 
+    // ADDED: useEffect for auth redirect
+    useEffect(() => {
+        if (!authIsLoading && isAuthenticated) {
+            router.push('/dashboard');
+        }
+    }, [authIsLoading, isAuthenticated, router]);
+
     /**
      * Callback for submitting the captcha answer.
      * Validates the captcha and starts the upload if a file is pending.
@@ -107,6 +116,12 @@ export default function UploadPage() {
         resetFileUpload();
         setResumeData(null);
     };
+
+    // ADDED: Conditional rendering based on auth state
+    if (authIsLoading || isAuthenticated) {
+        // You might want to show a loader here or return null
+        return null; // Or a loading spinner
+    }
 
     return (
         <PageLayout>

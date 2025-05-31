@@ -1,6 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import BentoBox from '@/components/ui/BentoBox';
 import AiModelsBox from '@/components/landing/AiModelsBox';
 import BrowserMockupBox from '@/components/landing/BrowserMockupBox';
@@ -78,6 +80,20 @@ const LandingPageStructure: React.FC = () => {
  * @returns {JSX.Element} The complete landing page
  */
 const BentoLandingPage = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.push('/dashboard');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  if (isLoading || isAuthenticated) {
+    // You might want to show a loader here or return null
+    return null; // Or a loading spinner
+  }
+
   return <LandingPageStructure />;
 };
 
