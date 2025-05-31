@@ -15,7 +15,7 @@ interface HeaderProps {
 const Header = ({ userEmail, onLogout }: HeaderProps) => {
 
     return (
-        <BentoBox className="flex flex-row justify-between bg-transparent">
+        <BentoBox className="flex flex-row justify-between">
             <Logo />
             <BentoBox className="flex flex-row justify-around bg-transparent p-0 gap-[var(--menu-gap)]">
                 <a href="#"><SmallText>Dashboard</SmallText></a>

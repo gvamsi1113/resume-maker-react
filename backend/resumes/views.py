@@ -13,6 +13,7 @@ from .serializers import (
     ResumeListSerializer,
     BaseResumeCreateSerializer,
     RecentApplicationItemSerializer,  # Import new serializer
+    OnboardingResumeCreateSerializer,  # Add this import
 )
 from bio.models import Bio  # Import Bio for create_base action
 
@@ -72,7 +73,9 @@ class ResumeViewSet(viewsets.ModelViewSet):
         logger.info(
             f"[get_base_resume] Found base resume (ID: {base_resume.id}) for user ID: {request.user.id if request.user else 'Anonymous'}"
         )
-        serializer = self.get_serializer(base_resume)
+        serializer = OnboardingResumeCreateSerializer(
+            base_resume, context=self.get_serializer_context()
+        )
         return Response(serializer.data)
 
     # Custom action to create the initial base resume

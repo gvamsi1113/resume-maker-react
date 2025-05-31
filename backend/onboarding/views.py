@@ -191,12 +191,22 @@ class OnboardingResumeUploadView(views.APIView):
             )
 
             # Case 1: Check for existing User by email
-            if email_from_snippet and isinstance(email_from_snippet, str) and email_from_snippet.strip():
-                logger.debug("OnboardingResumeUploadView: Step 4.3.1 - Checking for existing User by email.")
+            if (
+                email_from_snippet
+                and isinstance(email_from_snippet, str)
+                and email_from_snippet.strip()
+            ):
+                logger.debug(
+                    "OnboardingResumeUploadView: Step 4.3.1 - Checking for existing User by email."
+                )
                 try:
-                    existing_user = User.objects.filter(email__iexact=email_from_snippet.strip()).first()
+                    existing_user = User.objects.filter(
+                        email__iexact=email_from_snippet.strip()
+                    ).first()
                     if existing_user:
-                        logger.info(f"OnboardingResumeUploadView: Step 4.3.1 - Existing user (ID: {existing_user.id}) found matching email: {email_from_snippet.strip()}")
+                        logger.info(
+                            f"OnboardingResumeUploadView: Step 4.3.1 - Existing user (ID: {existing_user.id}) found matching email: {email_from_snippet.strip()}"
+                        )
                         return Response(
                             {
                                 "message": "A user account matching the provided email already exists. Please log in to upload or manage your resumes.",
@@ -207,27 +217,51 @@ class OnboardingResumeUploadView(views.APIView):
                             status=status.HTTP_200_OK,
                         )
                     else:
-                        logger.info(f"OnboardingResumeUploadView: Step 4.3.1 - No existing user found for email: {email_from_snippet.strip()}.")
+                        logger.info(
+                            f"OnboardingResumeUploadView: Step 4.3.1 - No existing user found for email: {email_from_snippet.strip()}."
+                        )
                 except Exception as e_user_check:
-                    logger.error(f"OnboardingResumeUploadView: Step 4.3.1 - Error during user duplicate check: {type(e_user_check).__name__} - {e_user_check}")
+                    logger.error(
+                        f"OnboardingResumeUploadView: Step 4.3.1 - Error during user duplicate check: {type(e_user_check).__name__} - {e_user_check}"
+                    )
             else:
-                logger.info("OnboardingResumeUploadView: Step 4.3.1 - Skipped user duplicate check as no email was available/valid from snippet.")
+                logger.info(
+                    "OnboardingResumeUploadView: Step 4.3.1 - Skipped user duplicate check as no email was available/valid from snippet."
+                )
 
             # Case 2: If no existing User was found, check for existing Resume by email or phone
-            logger.debug("OnboardingResumeUploadView: Step 4.3.2 - Checking for existing Resume by email or phone.")
+            logger.debug(
+                "OnboardingResumeUploadView: Step 4.3.2 - Checking for existing Resume by email or phone."
+            )
             resume_query = Q()
-            if email_from_snippet and isinstance(email_from_snippet, str) and email_from_snippet.strip():
+            if (
+                email_from_snippet
+                and isinstance(email_from_snippet, str)
+                and email_from_snippet.strip()
+            ):
                 resume_query |= Q(email__iexact=email_from_snippet.strip())
-            if phone_from_snippet and isinstance(phone_from_snippet, str) and phone_from_snippet.strip():
+            if (
+                phone_from_snippet
+                and isinstance(phone_from_snippet, str)
+                and phone_from_snippet.strip()
+            ):
                 resume_query |= Q(phone__iexact=phone_from_snippet.strip())
-            
-            logger.debug(f"OnboardingResumeUploadView: Step 4.3.2 - Constructed resume_query: {resume_query}")
+
+            logger.debug(
+                f"OnboardingResumeUploadView: Step 4.3.2 - Constructed resume_query: {resume_query}"
+            )
 
             if resume_query:
-                existing_resume = Resume.objects.filter(resume_query).order_by("-created_at").first()
+                existing_resume = (
+                    Resume.objects.filter(resume_query).order_by("-created_at").first()
+                )
                 if existing_resume:
-                    logger.info(f"OnboardingResumeUploadView: Step 4.3.2 - Existing resume (ID: {existing_resume.id}) found matching contact details. Details: {existing_resume}")
-                    serialized_existing_resume = OnboardingResumeCreateSerializer(existing_resume).data
+                    logger.info(
+                        f"OnboardingResumeUploadView: Step 4.3.2 - Existing resume (ID: {existing_resume.id}) found matching contact details. Details: {existing_resume}"
+                    )
+                    serialized_existing_resume = OnboardingResumeCreateSerializer(
+                        existing_resume
+                    ).data
                     logger.info(
                         f"OnboardingResumeUploadView: Step 4.3.2 - Serialized existing resume data for response. Preview: {str(serialized_existing_resume)[:200]}"
                     )
@@ -241,14 +275,20 @@ class OnboardingResumeUploadView(views.APIView):
                         status=status.HTTP_200_OK,
                     )
                 else:
-                    logger.info("OnboardingResumeUploadView: Step 4.3.2 - No existing resume found matching contact details.")
+                    logger.info(
+                        "OnboardingResumeUploadView: Step 4.3.2 - No existing resume found matching contact details."
+                    )
             else:
-                logger.info("OnboardingResumeUploadView: Step 4.3.2 - Resume query is empty (no valid email/phone from snippet), skipping resume duplicate check.")
-            
-            # Case 3: No User and No Resume found (Proceed to main processing)
-            logger.info("OnboardingResumeUploadView: Step 4.3.3 - No existing user or resume found based on extracted contact details. Proceeding to main AI processing.")
+                logger.info(
+                    "OnboardingResumeUploadView: Step 4.3.2 - Resume query is empty (no valid email/phone from snippet), skipping resume duplicate check."
+                )
 
-        else: # No contact_details extracted
+            # Case 3: No User and No Resume found (Proceed to main processing)
+            logger.info(
+                "OnboardingResumeUploadView: Step 4.3.3 - No existing user or resume found based on extracted contact details. Proceeding to main AI processing."
+            )
+
+        else:  # No contact_details extracted
             logger.info(
                 "OnboardingResumeUploadView: Step 4.3 - Skipped DB duplicate checks as contact details were not extracted. Proceeding to main AI processing."
             )
@@ -394,3 +434,255 @@ class OnboardingResumeUploadView(views.APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+
+class AuthenticatedResumeUploadView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]  # Require authentication
+    parser_classes = [parsers.MultiPartParser, parsers.FormParser]
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        user = request.user  # User is guaranteed to be authenticated
+        logger.info(
+            f"AuthenticatedResumeUploadView: POST request received from authenticated user: {user.email} (ID: {user.id})"
+        )
+
+        # --- 1. File Presence Check (Skipping SecurityManager validation) ---
+        logger.debug(
+            "AuthenticatedResumeUploadView: Step 1 - File Presence Check started."
+        )
+        if "resume_file" not in request.FILES:
+            logger.warning(
+                "AuthenticatedResumeUploadView: Step 1 - 'resume_file' not found in request.FILES"
+            )
+            return Response(
+                {"error": "No resume file provided"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        logger.info(
+            "AuthenticatedResumeUploadView: Step 1 - 'resume_file' found in request.FILES."
+        )
+
+        # --- 2. File Upload Validation ---
+        logger.debug(
+            "AuthenticatedResumeUploadView: Step 2 - File Upload Validation started."
+        )
+        upload_serializer = ResumeUploadSerializer(data=request.data)
+        if not upload_serializer.is_valid():
+            logger.error(
+                f"AuthenticatedResumeUploadView: Step 2 - ResumeUploadSerializer errors for user {user.id}: {upload_serializer.errors}"
+            )
+            return Response(
+                upload_serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
+        validated_uploaded_file = upload_serializer.validated_data["resume_file"]
+        logger.info(
+            f"AuthenticatedResumeUploadView: Step 2 - File {validated_uploaded_file.name} passed upload validation for user {user.id}."
+        )
+
+        # --- 3. Preliminary Checks: Text Extraction, Contact Extraction, Duplicate Checks (Simplified for authenticated users) ---
+        logger.debug(
+            "AuthenticatedResumeUploadView: Step 3 - Preliminary Checks started."
+        )
+        extracted_text = None
+
+        # 3.1 Attempt Text Extraction
+        logger.debug(
+            "AuthenticatedResumeUploadView: Step 3.1 - Attempting Text Extraction."
+        )
+        try:
+            logger.info(
+                f"AuthenticatedResumeUploadView: Attempting text extraction from {validated_uploaded_file.name} for user {user.id}..."
+            )
+            extracted_text = extract_text_from_uploaded_file(validated_uploaded_file)
+            if not extracted_text or not extracted_text.strip():
+                logger.warning(
+                    f"AuthenticatedResumeUploadView: Step 3.1 - Text extraction failed or yielded empty text for user {user.id}. Proceeding with file."
+                )
+                extracted_text = None
+            else:
+                logger.info(
+                    f"AuthenticatedResumeUploadView: Step 3.1 - Successfully extracted text ({len(extracted_text)} chars) for user {user.id}."
+                )
+        except Exception as e_text_extract:
+            logger.error(
+                f"AuthenticatedResumeUploadView: Step 3.1 - Error during text extraction for user {user.id}: {type(e_text_extract).__name__} - {e_text_extract}. Proceeding with file."
+            )
+            extracted_text = None
+
+        # 3.2 Duplicate check: Optional: Check if this user already uploaded a resume with the exact same filename (content check is harder)
+        # This is a simple check. More sophisticated checks (e.g. content hash) could be added.
+        # For now, we primarily rely on the AI processing and then the user can manage/delete.
+        # We can check if a resume with the same name *for this user* exists.
+        # However, the main purpose here is to process and make it available.
+        # The user can decide later if it's a duplicate they want to remove.
+        # The `is_duplicate` flag from the original view was more about *unauthenticated* users potentially re-uploading.
+        # For authenticated users, they are knowingly adding to their account.
+        logger.info(
+            f"AuthenticatedResumeUploadView: Step 3.2 - Skipping extensive duplicate checks for authenticated user {user.id}. AI processing will proceed."
+        )
+
+        # --- 4. Main AI Processing ---
+        logger.debug(
+            f"AuthenticatedResumeUploadView: Step 4 - Main AI Processing started for user {user.id}."
+        )
+        logger.info(
+            f"AuthenticatedResumeUploadView: Preparing for main AI processing for file: {validated_uploaded_file.name} for user {user.id}"
+        )
+
+        input_for_main_ai = (
+            extracted_text if extracted_text else validated_uploaded_file
+        )
+        if extracted_text:
+            logger.info(
+                f"AuthenticatedResumeUploadView: Step 4 - Using extracted text for main AI processing for user {user.id}."
+            )
+        else:
+            logger.info(
+                f"AuthenticatedResumeUploadView: Step 4 - Using uploaded file for main AI processing for user {user.id} (text extraction failed or was skipped)."
+            )
+
+        logger.info(
+            f"AuthenticatedResumeUploadView: Step 4 - Calling generate_structured_data_from_file_content for user {user.id}."
+        )
+        structured_data = generate_structured_data_from_file_content(input_for_main_ai)
+
+        if structured_data is None:
+            logger.error(
+                f"AuthenticatedResumeUploadView: Step 4 - AI processing failed for user {user.id} (generate_structured_data_from_file_content returned None)."
+            )
+            return Response(
+                {"error": "Failed to process resume content using AI."},
+                status=status.HTTP_502_BAD_GATEWAY,  # 502 Bad Gateway if AI service fails
+            )
+
+        logger.info(
+            f"AuthenticatedResumeUploadView: Step 4 - AI processing successful for user {user.id}."
+        )
+        logger.debug(  # Log more detailed data for debug if needed
+            f"AuthenticatedResumeUploadView: Step 4 - Structured data from AI for user {user.id} (first 500 chars): {str(structured_data)[:500]}"
+        )
+
+        # --- 5. Prepare Data for Saving ---
+        logger.debug(
+            f"AuthenticatedResumeUploadView: Step 5 - Prepare Data for Saving started for user {user.id}."
+        )
+
+        # User is request.user (guaranteed by IsAuthenticated)
+        user_identifier = f"user:{user.id}"
+        logger.info(
+            f"AuthenticatedResumeUploadView: Step 5 - User identifier for saving: {user_identifier}"
+        )
+
+        # Logic to make the new resume the base, and unmark any old base resume.
+        # This is done atomically thanks to @transaction.atomic on the post method.
+        try:
+            # Set all other resumes for this user to is_base_resume=False
+            Resume.objects.filter(user=user, is_base_resume=True).update(
+                is_base_resume=False
+            )
+            logger.info(
+                f"AuthenticatedResumeUploadView: Step 5 - Unmarked existing base resume(s) for user {user.id}."
+            )
+        except Exception as e_update_base:
+            # Log this error but proceed with attempting to save the new resume as base.
+            # The unique constraint on the model might still prevent issues if an old base wasn't updated,
+            # but this indicates a potential problem.
+            logger.error(
+                f"AuthenticatedResumeUploadView: Step 5 - Error unmarking existing base resume(s) for user {user.id}: {e_update_base}. Will attempt to save new resume as base."
+            )
+
+        is_base = True  # New resume will always be the base.
+        logger.info(
+            f"AuthenticatedResumeUploadView: Step 5 - New resume will be set as the base for user {user.id}."
+        )
+
+        resume_name = "Uploaded Resume"
+        # Generate name from AI data if available
+        ai_first_name = structured_data.get("first_name", "").strip()
+        ai_last_name = structured_data.get("last_name", "").strip()
+        if ai_first_name or ai_last_name:
+            resume_name = f"{ai_first_name} {ai_last_name} Resume".strip()
+
+        # Fallback if name is still empty (e.g. AI didn't provide names)
+        if not resume_name:
+            resume_name = f"Resume uploaded on {datetime.now().strftime('%Y-%m-%d')}"
+
+        logger.info(
+            f"AuthenticatedResumeUploadView: Step 5 - Generated resume name: '{resume_name}' for user {user.id}"
+        )
+
+        resume_data_for_serializer = structured_data.copy()
+        resume_data_for_serializer["name"] = resume_name
+        # Add email and phone from structured_data if available, to be saved in Resume model
+        if "email" in structured_data:  # This is email from resume content
+            resume_data_for_serializer["email"] = structured_data["email"]
+        if "phone" in structured_data:  # This is phone from resume content
+            resume_data_for_serializer["phone"] = structured_data["phone"]
+
+        logger.debug(  # Log more detailed data for debug if needed
+            f"AuthenticatedResumeUploadView: Step 5 - Data prepared for serializer for user {user.id} (first 500 chars): {str(resume_data_for_serializer)[:500]}"
+        )
+
+        # --- 6. Data Validation and Saving using Serializer ---
+        logger.debug(
+            f"AuthenticatedResumeUploadView: Step 6 - Data Validation and Saving using Serializer started for user {user.id}."
+        )
+        serializer = OnboardingResumeCreateSerializer(data=resume_data_for_serializer)
+
+        if serializer.is_valid():
+            logger.info(
+                f"AuthenticatedResumeUploadView: Step 6 - Serializer validation successful for user {user.id}."
+            )
+            try:
+                logger.info(
+                    f"AuthenticatedResumeUploadView: Step 6 - Attempting to save resume with serializer for user {user.id}."
+                )
+                # Save the resume, associating it with the authenticated user
+                new_resume = serializer.save(user=user, is_base_resume=is_base)
+                logger.info(
+                    f"AuthenticatedResumeUploadView: Step 6 - Successfully saved new resume with ID: {new_resume.id} for {user_identifier} via serializer"
+                )
+
+                # --- 7. Success Response ---
+                logger.debug(
+                    f"AuthenticatedResumeUploadView: Step 7 - Preparing success response for user {user.id}."
+                )
+                # Use the same serializer to ensure consistent output format
+                response_serializer = OnboardingResumeCreateSerializer(new_resume)
+                response_data = {
+                    "message": "Resume processed and saved successfully.",
+                    "resume_id": new_resume.id,
+                    "enhanced_resume_data": response_serializer.data,  # Use serialized data
+                }
+                logger.info(
+                    f"AuthenticatedResumeUploadView: Step 7 - Sending success response for user {user.id}: {response_data}"
+                )
+                return Response(response_data, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                logger.error(
+                    f"AuthenticatedResumeUploadView: Step 6 - Error saving resume via serializer for {user_identifier}: {type(e).__name__} - {e}"
+                )
+                error_detail = str(e)
+                return Response(
+                    {
+                        "error": "Failed to save processed resume data to the database after validation.",
+                        "detail": error_detail,
+                        "enhanced_resume_data": structured_data,
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+        else:
+            logger.error(
+                f"AuthenticatedResumeUploadView: Step 6 - Serializer validation failed for user {user.id}: {serializer.errors}"
+            )
+            return Response(
+                {
+                    "error": "Validation failed for the processed resume data.",
+                    "errors": serializer.errors,
+                    "enhanced_resume_data": structured_data,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+# --- END OF AuthenticatedResumeUploadView ---

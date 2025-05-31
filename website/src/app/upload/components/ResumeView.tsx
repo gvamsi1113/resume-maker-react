@@ -31,7 +31,7 @@ const ResumeView: React.FC<ResumeViewProps> = ({ resumeData }) => {
         : 'resume.pdf';
 
     return (
-        <BentoBox className="flex flex-col p-0 items-center justify-center w-full h-full">
+        <BentoBox className="flex flex-col p-0 items-center justify-center w-full h-full bg-transparent">
             <div className="relative w-full h-full group">
                 <div className="relative w-full h-full overflow-hidden after:content-[''] after:absolute after:inset-0 after:shadow-[inset_0_0_0_7px_#ffffff] after:pointer-events-none">
                     {typeof window !== 'undefined' && (

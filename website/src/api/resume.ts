@@ -89,3 +89,26 @@ export const getRecentApplications = async (
     method: 'GET',
   });
 };
+
+interface ProcessAuthenticatedResumeParams {
+  file: File;
+}
+
+/**
+ * Processes a resume for an authenticated user.
+ *
+ * @param {ProcessAuthenticatedResumeParams} params - The parameters for processing the resume.
+ * @returns {Promise<ResumeResponseType>} A promise that resolves to the processed resume data.
+ */
+export const processAuthenticatedResume = async ({
+  file,
+}: ProcessAuthenticatedResumeParams): Promise<ResumeResponseType> => {
+  const formData = new FormData();
+  formData.append('resume_file', file);
+
+  // No demo token or captcha headers needed, fetcher handles auth token
+  return fetcher<ResumeResponseType>('/api/onboard/process-resume-authenticated/', {
+    method: 'POST',
+    body: formData,
+  });
+};

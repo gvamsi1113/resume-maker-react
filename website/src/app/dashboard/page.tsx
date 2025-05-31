@@ -30,6 +30,12 @@ export default function Dashboard() {
         queryFn: getBaseResume,
         enabled: !contextResumeData?.enhanced_resume_data && !!user && isAuthenticated,
         staleTime: 1000 * 60 * 15,
+        retry: (failureCount, error: any) => {
+            if (error && error.response && error.response.status === 404) {
+                return false;
+            }
+            return failureCount < 3;
+        },
     });
 
     useEffect(() => {
@@ -87,7 +93,6 @@ export default function Dashboard() {
                     baseResumeIsError={baseResumeIsError}
                     baseResumeFetchError={baseResumeFetchError}
                     isAuthenticated={isAuthenticated}
-                    router={router}
                 />
                 <RecentApplications />
             </BentoBox>
