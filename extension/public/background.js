@@ -1,439 +1,170 @@
-// background.js - Service worker handling core extension logic: message passing,
-// content script injection, and API calls.
+/**
+ * @file background.js
+ * @description Service worker for the Resume Tailor extension.
+ * Orchestrates fetching selected text from the active tab, calling the Gemini API
+ * for resume tailoring, and communicating status/results to the popup.
+ */
 
-// Imports base resume data (text and structured JSON).
-import {
-  BASE_RESUME_BASICS,
-  BASE_RESUME_SUMMARY,
-  BASE_RESUME_WORK,
-  BASE_RESUME_EDUCATION,
-  BASE_RESUME_SKILLS,
-  BASE_RESUME_PROJECTS,
-} from "./baseResumeData.js";
+import { callGeminiApi, formatGeminiApiError } from "./modules/geminiApiHandler.js";
+import { sendMessageToPopup } from "./modules/popupCommunicator.js";
+import { getSelectedTextFromActiveTab } from "./modules/contentScriptManager.js";
 
-import { generatePrompt } from "./promptTemplate.js";
-
-const GEMINI_MODEL = "gemini-2.5-pro-exp-03-25";
-
-const GEMINI_API_BASE_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models";
-
-// --- Message Listener ---
-// Handles messages from other parts of the extension (e.g., popup).
+// --- Main Message Listener ---
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "triggerGeneration") {
-    console.log("Background: Received triggerGeneration");
+    console.log("Background: Received triggerGeneration action.");
     sendMessageToPopup({
       action: "statusUpdate",
-      message: "Getting selected text...",
+      message: "Processing: Getting selected text from page...",
     });
 
-    // Get the active tab and execute the content script.
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs && tabs[0] && tabs[0].id) {
-        const activeTabId = tabs[0].id;
-
-        chrome.scripting
-          .executeScript({
-            target: { tabId: activeTabId },
-            // Inject the content script into the active tab.
-            // Note: Ensure content.js path is correct relative to manifest.
-            files: ["content.js"],
-          })
-          .then(() => {
-            console.log(
-              "Background: Injected/confirmed content script. Sending message to get selection."
-            );
-            chrome.tabs.sendMessage(
-              activeTabId,
-              { action: "getSelection" },
-              (response) => {
-                handleContentScriptResponse(response, sendResponse); // Handle async response.
-              }
-            );
-          })
-          .catch((err) => {
-            handleScriptInjectionError(err, sendResponse);
+    getSelectedTextFromActiveTab()
+      .then((selectionResult) => {
+        if (selectionResult && selectionResult.text) {
+          console.log("Background: Successfully retrieved text from content script.");
+          sendMessageToPopup({
+            action: "statusUpdate",
+            message: "Text detected! Preview:",
+            textPreview: selectionResult.textPreview,
           });
-      } else {
-        handleNoActiveTabError(sendResponse);
-      }
-    });
 
-    // Indicate that the response will be sent asynchronously.
-    return true;
-  }
-});
+          // Short delay for UI to update before API call message
+          setTimeout(() => {
+            sendMessageToPopup({
+              action: "statusUpdate",
+              message: "Generating tailored JSON resume with Gemini...",
+            });
 
-// --- Content Script Interaction ---
-
-/**
- * Handles the response received from the content script.
- * Processes the selected text, updates the popup status,
- * and triggers the Gemini API call.
- * @param {object} response - The response object from the content script.
- * @param {function} sendResponse - Callback function to send a response.
- */
-function handleContentScriptResponse(response, sendResponse) {
-  if (chrome.runtime.lastError) {
-    console.error(
-      "Background: Error sending/receiving message to content script:",
-      chrome.runtime.lastError.message
-    );
-    sendMessageToPopup({
-      action: "error",
-      message: "Could not communicate with the page. Try reloading.",
-    });
-    sendResponse({
-      status: "error",
-      message: chrome.runtime.lastError.message,
-    });
-    return;
-  }
-
-  if (response && response.status === "success" && response.text) {
-    console.log("Background: Received selected text.");
-
-    // Update popup with text preview.
-    const textPreview =
-      response.textPreview ||
-      response.text.substring(0, 100) +
-        (response.text.length > 100 ? "..." : "");
-    sendMessageToPopup({
-      action: "statusUpdate",
-      message: "Text detected! Preview:",
-      textPreview: textPreview,
-    });
-
-    setTimeout(() => {
-      sendMessageToPopup({
-        action: "statusUpdate",
-        message: "Generating tailored JSON resume with Gemini...",
-      });
-      // Initiate Gemini API call with the selected text.
-      callGeminiApi(response.text)
-        .then((generatedJsonString) => {
-          // Gemini API call succeeded.
+            callGeminiApi(selectionResult.text)
+              .then((generatedJsonString) => {
+                console.log(
+                  "Background: Gemini API call successful. Sending to popup."
+                );
+                sendMessageToPopup({
+                  action: "generationComplete",
+                  text: generatedJsonString, // Raw JSON string for popup to parse
+                });
+                sendResponse({ status: "success", text: generatedJsonString });
+              })
+              .catch((error) => {
+                console.error("Background: Gemini API call failed:", error);
+                const userFriendlyError = formatGeminiApiError(error);
+                sendMessageToPopup({
+                  action: "error",
+                  message: `Gemini Error: ${userFriendlyError}`,
+                });
+                // It's important to still call sendResponse for the original message listener
+                sendResponse({ status: "error", message: error.message });
+              });
+          }, 500); // Small delay for status update visibility
+        } else {
+          // Error messages to popup are handled by getSelectedTextFromActiveTab via errorHandler
           console.log(
-            "Background: Gemini API call successful, returning JSON string."
+            "Background: Failed to get text from content script or no text selected."
           );
-          sendMessageToPopup({
-            action: "generationComplete",
-            // Send the raw JSON string to the popup for parsing.
-            text: generatedJsonString,
+          // Ensure sendResponse is called if getSelectedTextFromActiveTab resolves with null/failure
+          sendResponse({
+            status: "error",
+            message: "Failed to retrieve text from page. No text selected or script error.",
           });
-          sendResponse({ status: "success", text: generatedJsonString });
-        })
-        .catch((error) => {
-          console.error("Background: Gemini API call failed:", error);
-          // Create a user-friendly error message based on the error type.
-          let userFriendlyError = "Generation Error."; // Default message.
-          if (error.message.includes("API key not valid")) {
-            userFriendlyError = "Invalid or missing API Key.";
-          } else if (error.message.includes("API request failed")) {
-            userFriendlyError = "API Request Failed.";
-          } else if (error.message.includes("valid JSON")) {
-            userFriendlyError = "Failed to generate valid JSON.";
-          } else if (error.message.includes("safety")) {
-            userFriendlyError = "Content blocked (safety).";
-          } else if (error.message.includes("quota")) {
-            userFriendlyError = "API Quota Exceeded.";
-          } else if (error.message.includes("empty response")) {
-            userFriendlyError = "API returned empty response.";
-          }
-
-          sendMessageToPopup({
-            action: "error",
-            message: `Gemini Error: ${userFriendlyError} Details: ${error.message}`,
-          });
-          sendResponse({ status: "error", message: error.message });
-        });
-    }, 1000); // Delay for UI feedback consistency.
-  } else {
-    // Handle cases where getting the selection failed.
-    const errorMessage =
-      response?.message ||
-      (!response?.text
-        ? "No text selected on the page."
-        : "Failed to get selection from page.");
-    console.log("Background: Failed to get selection -", errorMessage);
-    sendMessageToPopup({ action: "error", message: errorMessage });
-    sendResponse({ status: "error", message: errorMessage });
-  }
-}
-
-/**
- * Handles errors that occur during content script injection.
- * @param {Error} err - The error object.
- * @param {function} sendResponse - Callback function to send an error response.
- */
-function handleScriptInjectionError(err, sendResponse) {
-  console.error("Background: Failed to inject content script:", err);
-  sendMessageToPopup({
-    action: "error",
-    message: "Failed to inject script. Reload page/browser.",
-  });
-  sendResponse({ status: "error", message: err.message });
-}
-
-/**
- * Handles errors when the active tab cannot be found.
- * @param {function} sendResponse - Callback function to send an error response.
- */
-function handleNoActiveTabError(sendResponse) {
-  console.error("Background: Could not get active tab.");
-  sendMessageToPopup({
-    action: "error",
-    message: "Could not identify active tab.",
-  });
-  sendResponse({ status: "error", message: "No active tab found" });
-}
-
-// --- Popup Communication ---
-
-/**
- * Sends messages (status updates, errors, results) to the popup UI.
- * @param {object} message - The message object to send.
- */
-function sendMessageToPopup(message) {
-  console.log("Background: Sending message to popup:", message.action);
-  chrome.runtime.sendMessage(message).catch((error) => {
-    // Ignore specific errors if the popup isn't open, log others.
-    if (
-      error.message !==
-        "Could not establish connection. Receiving end does not exist." &&
-      error.message !==
-        "The message port closed before a response was received."
-    ) {
-      console.warn(
-        "Background: Could not send message to popup:",
-        error.message
-      );
-    }
-  });
-}
-
-// --- Gemini API Interaction ---
-
-/**
- * Calls the Gemini API to generate a tailored resume JSON based on the job description.
- * Retrieves the API key, constructs the prompt, makes the API call,
- * handles the response (including cleaning and merging), and returns the final JSON string.
- * @param {string} jobDescription - The job description text from the content script.
- * @returns {Promise<string>} A promise that resolves with the generated JSON string.
- */
-async function callGeminiApi(jobDescription) {
-  // Retrieve API Key from local storage.
-  let apiKey;
-  try {
-    const data = await chrome.storage.local.get(["geminiApiKey"]);
-    if (!data.geminiApiKey) {
-      throw new Error(
-        "Gemini API Key not found. Please set it via the extension's console."
-      );
-    }
-    apiKey = data.geminiApiKey;
-  } catch (error) {
-    console.error("Background: Error retrieving API key:", error);
-    throw new Error(error.message || "Could not retrieve API key.");
-  }
-
-  // Construct the API URL.
-  const apiUrl = `${GEMINI_API_BASE_URL}/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
-
-  // Construct the prompt using base resume data and the job description.
-  const prompt = generatePrompt(
-    BASE_RESUME_WORK,
-    BASE_RESUME_SKILLS,
-    BASE_RESUME_PROJECTS,
-    BASE_RESUME_SUMMARY,
-    jobDescription
-  );
-
-  // Construct the request body for the Gemini API.
-  const requestBody = {
-    contents: [
-      {
-        parts: [{ text: prompt }],
-      },
-    ],
-    generationConfig: {
-      // Configuration for the generation process.
-      // responseMimeType: "application/json", // Optional: Request JSON directly if supported.
-      // temperature: 0.7,
-      // topP: 1.0,
-      // topK: 40,
-      // maxOutputTokens: 8192,
-    },
-    // safetySettings: [...], // Optional: Configure safety settings.
-  };
-
-  console.log("Background: Calling Gemini API for tailored sections.");
-  // console.log("Background: Prompt Start:", prompt.substring(0, 300)); // Debugging log.
-
-  // Make the API request using fetch.
-  try {
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    // Handle non-successful HTTP responses.
-    if (!response.ok) {
-      let errorBodyText = await response.text();
-      let errorDetails = `HTTP status ${response.status}`;
-      try {
-        const errorData = JSON.parse(errorBodyText);
-        errorDetails += `: ${errorData.error?.message || "Unknown API error"}`;
-        if (
-          errorData.error?.message?.toLowerCase().includes("api key not valid")
-        ) {
-          throw new Error(
-            "API request failed: API Key not valid. Please check."
-          );
         }
-        // Add checks for other specific errors (e.g., billing) if needed.
-      } catch (e) {
-        errorDetails += ` - Body: ${errorBodyText}`;
-      }
-      console.error(`Background: API request failed: ${errorDetails}`);
-      throw new Error(`API request failed: ${errorDetails}`);
-    }
-
-    // Parse the successful JSON response.
-    const data = await response.json();
-
-    // Validate the response structure and check for candidates.
-    const candidate = data?.candidates?.[0];
-    if (!candidate) {
-      console.error(
-        "Background: No candidates in response:",
-        JSON.stringify(data, null, 2)
-      );
-      if (data?.promptFeedback?.blockReason) {
-        throw new Error(
-          `API prompt blocked: ${data.promptFeedback.blockReason}`
+      })
+      .catch((error) => {
+        // This catch is for unexpected errors in getSelectedTextFromActiveTab promise itself,
+        // though it's designed to resolve with null rather than reject for known issues.
+        console.error(
+          "Background: Unexpected error in getSelectedTextFromActiveTab promise chain:",
+          error
         );
-      }
-      throw new Error("API returned no candidates. Check Gemini console.");
-    }
+        sendMessageToPopup({
+          action: "error",
+          message: "An unexpected error occurred while accessing page content.",
+        });
+        sendResponse({
+          status: "error",
+          message: error.message || "Unexpected content script manager error",
+        });
+      });
 
-    const finishReason = candidate.finishReason;
-    if (
-      finishReason &&
-      finishReason !== "STOP" &&
-      finishReason !== "MAX_TOKENS"
-    ) {
-      const safetyRatings = JSON.stringify(candidate.safetyRatings);
-      console.warn(
-        `Background: Generation stopped: ${finishReason}. Ratings: ${safetyRatings}`
-      );
-      let reasonMsg = `Generation stopped: ${finishReason}.`;
-      if (finishReason === "SAFETY")
-        reasonMsg = "Content blocked (safety). Check safety settings.";
-      else if (finishReason === "RECITATION")
-        reasonMsg = "Content blocked (recitation).";
-      throw new Error(reasonMsg);
-    }
-
-    // Validate the content structure within the candidate.
-    if (
-      !candidate.content?.parts?.[0]?.text ||
-      typeof candidate.content.parts[0].text !== "string"
-    ) {
-      console.error(
-        "Background: Unexpected API response structure:",
-        JSON.stringify(data, null, 2)
-      );
-      throw new Error("Could not parse text from API response structure.");
-    }
-
-    // Extract the generated text (expected to be a JSON string).
-    let generatedText = candidate.content.parts[0].text.trim();
-
-    // Clean potential markdown code fences (```json ... ```) from the response.
-    const markdownJsonPrefix = "```json";
-    const markdownEndFence = "```";
-    let cleanedJsonString = generatedText; // Start with the original.
-
-    if (cleanedJsonString.startsWith(markdownJsonPrefix)) {
-      cleanedJsonString = cleanedJsonString
-        .substring(markdownJsonPrefix.length)
-        .trimStart(); // Remove prefix and leading whitespace.
-    } else if (cleanedJsonString.startsWith(markdownEndFence)) {
-      // Handle case where only ``` is used at the start.
-      cleanedJsonString = cleanedJsonString
-        .substring(markdownEndFence.length)
-        .trimStart();
-    }
-
-    if (cleanedJsonString.endsWith(markdownEndFence)) {
-      cleanedJsonString = cleanedJsonString
-        .substring(0, cleanedJsonString.length - markdownEndFence.length)
-        .trimEnd(); // Remove suffix and trailing whitespace.
-    }
-    // --- End cleaning ---
-
-    // Parse the cleaned JSON string.
-    let generatedData;
-    try {
-      if (!cleanedJsonString) {
-        throw new Error(
-          "API returned an empty or markdown-only response string after cleaning."
-        );
-      }
-      generatedData = JSON.parse(cleanedJsonString);
-      console.log(
-        "Background: Successfully parsed generated JSON sections from Gemini."
-      );
-
-      // Merge the generated sections with the base resume data.
-      const finalResumeJson = {
-        basics: BASE_RESUME_BASICS.basics, // Use original basics.
-        ...generatedData, // Include generated summary, work, skills, projects.
-        education: BASE_RESUME_EDUCATION.education, // Use original education.
-        // Add other base sections if needed: ...BASE_RESUME_OTHER
-      };
-      // --- END MERGING ---
-
-      // Convert the final merged resume object back to a JSON string.
-      const finalJsonString = JSON.stringify(finalResumeJson, null, 2); // Pretty print.
-      console.log("Background: Sending merged JSON string to popup.");
-      return finalJsonString; // Return the complete, merged JSON string.
-    } catch (parseError) {
-      console.error(
-        "Background: ERROR - Failed to parse Gemini JSON output (after cleaning) or merge data:",
-        parseError.message,
-        "\n--- Cleaned String Attempted ---\n",
-        cleanedJsonString.substring(0, 1000) // Log a portion of the problematic string.
-      );
-      // Throw an error indicating parsing/merging failure.
-      throw new Error(`Failed to process API response: ${parseError.message}`);
-    }
-  } catch (error) {
-    // Catch any errors during fetch, processing, or merging.
-    console.error(
-      "Background: Error during callGeminiApi fetch/processing/merging:",
-      error
-    );
-    // Re-throw a generic error message.
-    throw new Error(
-      error.message ||
-        "Network error or processing/merging failed during API call."
-    );
+    return true; // Indicate that sendResponse will be called asynchronously.
   }
-}
-
-// --- Service Worker Lifecycle ---
-// Logs when the service worker is installed or updated.
-chrome.runtime.onInstalled.addListener(() => {
-  console.log(
-    "Basic Resume Tailor (Gemini) Background Service Worker Installed/Updated."
-  );
-  // Potential place to set default storage values on installation.
+  // If the message action is not 'triggerGeneration', and not handled otherwise,
+  // it's good practice to return false or nothing if not intending to send a response.
+  // return false; // For synchronous message handlers or if this action isn't handled.
 });
 
-console.log("Background Service Worker Started (Gemini Configured).");
+// --- Service Worker Lifecycle Events ---
+chrome.runtime.onInstalled.addListener(() => {
+  console.log("Resume Tailor Extension installed/updated.");
+  // Future: Set up default API key or guide user to options page.
+  // chrome.storage.local.get("geminiApiKey", (result) => {
+  //   if (!result.geminiApiKey) {
+  //     sendMessageToPopup({
+  //       action: "statusUpdate",
+  //       message: "API Key needed. Please set it in extension options."
+  //     });
+  //   }
+  // });
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  console.log("Resume Tailor Extension started.");
+});
+
+// --- Removed legacy code ---
+// The old handleContentScriptResponse and other specific handlers
+// have been integrated into or replaced by the new modular structure.
+
+// /**
+//  * Handles the response received from the content script.
+//  * Processes the selected text, updates the popup status,
+//  * and triggers the Gemini API call.
+//  * @param {object} response - The response object from the content script.
+//  * @param {function} sendResponse - Callback function to send a response to the original message sender.
+//  * @param {number} tabId - The ID of the tab from which the content script responded.
+//  */
+// function handleContentScriptResponse(response, sendResponse, tabId) { ... } // Moved to errorHandler.js
+
+// /**
+//  * Handles errors that occur during content script injection.
+//  * @param {Error} err - The error object.
+//  * @param {function} sendResponse - Callback function to send an error response.
+//  */
+// function handleScriptInjectionError(err, sendResponse) { ... } // Moved to errorHandler.js
+
+// /**
+//  * Handles errors when the active tab cannot be found.
+//  * @param {function} sendResponse - Callback function to send an error response.
+//  */
+// function handleNoActiveTabError(sendResponse) { ... } // Moved to errorHandler.js
+
+// /**
+//  * Sends messages (status updates, errors, results) to the popup UI.
+//  * @param {object} message - The message object to send.
+//  */
+// function sendMessageToPopup(message) { ... } // Moved
+
+// /**
+//  * Calls the Gemini API to generate a tailored resume JSON based on the job description.
+//  * Retrieves the API key, constructs the prompt, makes the API call,
+//  * handles the response (including cleaning and merging), and returns the final JSON string.
+//  * @param {string} jobDescription - The job description text from the content script.
+//  * @returns {Promise<string>} A promise that resolves with the generated JSON string.
+//  */
+// async function callGeminiApi(jobDescription) { ... } // Moved
+
+// /**
+//  * Merges the generated resume data with the base resume data.
+//  * @param {object} generatedData - The resume data generated by the Gemini API.
+//  * @returns {object} The merged resume data.
+//  */
+// function mergeWithBaseResume(generatedData) { ... } // This function was complex and potentially problematic. Simplified by having Gemini return full structure.
+
+// /**
+//  * Cleans the JSON string received from the Gemini API.
+//  * Removes markdown formatting and ensures it's a valid JSON string.
+//  * @param {string} jsonString - The JSON string from the API.
+//  * @returns {string} The cleaned JSON string.
+//  * @throws {Error} If the string cannot be cleaned into valid JSON.
+//  */
+// function cleanGeminiJson(jsonString) { ... } // Moved to be part of API response handling or parsing logic if still needed.
