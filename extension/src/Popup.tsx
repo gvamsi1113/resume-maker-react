@@ -12,6 +12,14 @@ import {
   ResumeLanguageItem,
 } from "./types/resumeTypes"; // Adjusted path
 
+// --- Custom Job Data Type ---
+interface ScrapedJobData {
+  title: string;
+  company: string;
+  description: string;
+  url: string;
+}
+
 // --- Message Types ---
 interface StatusUpdateMessage {
   action: "statusUpdate";
@@ -36,7 +44,7 @@ type BackgroundMessage =
 
 const Popup: React.FC = () => {
   const [statusMessage, setStatusMessage] = useState(
-    "Idle. Select text and click Generate."
+    "Idle. Select text on a page or use the scraper."
   );
   const [isError, setIsError] = useState(false);
   const [textPreview, setTextPreview] = useState<string | null>(null);
@@ -46,6 +54,9 @@ const Popup: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   // --- Update Copy Button Initial Text ---
   const [copyButtonText, setCopyButtonText] = useState("Copy Raw Output"); // Updated button text
+  // --- State for Scraped Job Data ---
+  const [scrapedJobData, setScrapedJobData] = useState<ScrapedJobData | null>(null);
+  const [jobDescriptionText, setJobDescriptionText] = useState("");
 
   const handleGenerateClick = () => {
     setStatusMessage("Processing...");
@@ -56,16 +67,25 @@ const Popup: React.FC = () => {
     setIsGenerating(true);
     setCopyButtonText("Copy Raw Output");
 
-    console.log("Popup: Sending 'triggerGeneration' message to background.");
-    chrome.runtime.sendMessage({ action: "triggerGeneration" }, (response) => {
+    const messagePayload: { action: string; text?: string } = {
+      action: "triggerGeneration",
+    };
+
+    if (jobDescriptionText.trim()) {
+      messagePayload.text = jobDescriptionText;
+      console.log("Popup: Sending 'triggerGeneration' with custom text from text area.");
+    } else {
+      console.log("Popup: Sending 'triggerGeneration' to get selected text from page.");
+    }
+
+    chrome.runtime.sendMessage(messagePayload, (response) => {
       if (chrome.runtime.lastError) {
         const errorMsg = chrome.runtime.lastError.message?.includes(
           "Receiving end does not exist"
         )
           ? "Error: Background service inactive. Try reloading the extension."
-          : `Error: ${
-              chrome.runtime.lastError.message || "Unknown communication error"
-            }`;
+          : `Error: ${chrome.runtime.lastError.message || "Unknown communication error"
+          }`;
         setStatusMessage(errorMsg);
         setIsError(true);
         setIsGenerating(false);
@@ -138,6 +158,24 @@ const Popup: React.FC = () => {
       setStatusMessage(`Error generating PDF: ${errorMessage}`);
     }
   };
+
+  useEffect(() => {
+    // On load, always check if there's scraped data waiting to be displayed.
+    // This is better than relying on a URL parameter.
+    chrome.storage.local.get('scrapedJobDetails', (result) => {
+      if (result.scrapedJobDetails) {
+        const data = result.scrapedJobDetails;
+        console.log("Popup: Loaded scraped job details from storage:", data);
+        setScrapedJobData(data);
+        setJobDescriptionText(data.description || "");
+        setStatusMessage("Scraped job details loaded. Edit and click Generate.");
+        // Clear the data from storage so it's not reused accidentally on the next popup open.
+        chrome.storage.local.remove('scrapedJobDetails');
+      } else {
+        console.log("Popup: No pending scraped job data found in storage.");
+      }
+    });
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   useEffect(() => {
     const messageListener = (message: BackgroundMessage) => {
@@ -344,75 +382,97 @@ const Popup: React.FC = () => {
 
   return (
     <div className="popup-container">
-      <h3>Resume Tailor (React)</h3>
-      <p>Select job description text on a webpage, then click Generate.</p>
+      <header className="popup-header">
+        <h1>Resume Tailor ✨</h1>
+        <p className="status-message">
+          <span className={isError ? "error-text" : "status-text"}>
+            {statusMessage}
+          </span>
+        </p>
+      </header>
 
-      <button
-        className="generate"
-        onClick={handleGenerateClick}
-        disabled={isGenerating}
-      >
-        {isGenerating ? "Generating..." : "Generate"}
-      </button>
-
-      <div className={`status ${isError ? "error" : "info"}`}>
-        {isGenerating && <div className="spinner"></div>}
-        {statusMessage}
-      </div>
-
-      {/* Raw Text Preview Section */}
-      {textPreview && (
-        <div className="preview">
-          <h4>Raw Output Preview:</h4>
-          <pre>{textPreview}</pre>
+      {scrapedJobData && (
+        <div className="scraped-data-section">
+          <h4>Scraped Job Details</h4>
+          <div className="job-details">
+            <p><strong>Title:</strong> {scrapedJobData.title}</p>
+            <p><strong>Company:</strong> {scrapedJobData.company}</p>
+            {scrapedJobData.url && (
+              <p><strong>URL:</strong> <a href={scrapedJobData.url} target="_blank" rel="noopener noreferrer">View Job Posting</a></p>
+            )}
+          </div>
+          <textarea
+            className="job-description-textarea"
+            value={jobDescriptionText}
+            onChange={(e) => setJobDescriptionText(e.target.value)}
+            placeholder="Job description..."
+            rows={10}
+          />
         </div>
       )}
 
-      {/* Render the structured resume data if available and valid */}
-      <div className="result-container">
-        {resumeData ? (
-          <>
-            {renderBasics(resumeData.basics)}
-            {renderSummary(resumeData.summary)}
-            {renderWork(resumeData.work)}
-            {renderEducation(resumeData.education)}
-            {renderSkills(resumeData.skills)}
-            {renderProjects(resumeData.projects)}
-            {renderCertificates(resumeData.certificates)}
-            {renderLanguages(resumeData.languages)}
-          </>
-        ) : (
-          /* Show placeholder or raw text if parsing failed */
-          !isGenerating &&
-          (rawGeneratedText ? (
-            <div>
-              <p className="placeholder">
-                Couldn't parse JSON. Displaying raw output:
-              </p>
-              <pre className="raw-output">{rawGeneratedText}</pre>
-            </div>
-          ) : (
-            <p className="placeholder">
-              [Generated resume data will appear here]
-            </p>
-          ))
-        )}
-      </div>
+      <div className="actions">
+        <button
+          onClick={handleGenerateClick}
+          disabled={isGenerating}
+        >
+          {isGenerating ? "Generating..." : "Generate"}
+        </button>
 
-      {/* Show buttons only when raw output text is available */}
-      {rawGeneratedText && !isGenerating && (
-        <div className="button-container">
-          <button className="action" onClick={handleCopyClick}>
-            {copyButtonText} {/* Shows "Copy Raw Output" */}
-          </button>
-          {/* Only show Download PDF if parsing was successful (resumeData exists) */}
-          {resumeData && (
-            <button className="action" onClick={handleDownloadClick}>
-              Download PDF from JSON
-            </button>
+        {/* Raw Text Preview Section */}
+        {textPreview && (
+          <div className="preview">
+            <h4>Raw Output Preview:</h4>
+            <pre>{textPreview}</pre>
+          </div>
+        )}
+
+        {/* Render the structured resume data if available and valid */}
+        <div className="result-container">
+          {resumeData ? (
+            <>
+              {renderBasics(resumeData.basics)}
+              {renderSummary(resumeData.summary)}
+              {renderWork(resumeData.work)}
+              {renderEducation(resumeData.education)}
+              {renderSkills(resumeData.skills)}
+              {renderProjects(resumeData.projects)}
+              {renderCertificates(resumeData.certificates)}
+              {renderLanguages(resumeData.languages)}
+            </>
+          ) : (
+            /* Show placeholder or raw text if parsing failed */
+            !isGenerating &&
+            (rawGeneratedText ? (
+              <div>
+                <p className="placeholder">
+                  Couldn't parse JSON. Displaying raw output:
+                </p>
+                <pre className="raw-output">{rawGeneratedText}</pre>
+              </div>
+            ) : (
+              <p className="placeholder">
+                [Generated resume data will appear here]
+              </p>
+            ))
           )}
         </div>
-      )}
+
+        {/* Show buttons only when raw output text is available */}
+        {rawGeneratedText && !isGenerating && (
+          <div className="button-container">
+            <button className="action" onClick={handleCopyClick}>
+              {copyButtonText} {/* Shows "Copy Raw Output" */}
+            </button>
+            {/* Only show Download PDF if parsing was successful (resumeData exists) */}
+            {resumeData && (
+              <button className="action" onClick={handleDownloadClick}>
+                Download PDF from JSON
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

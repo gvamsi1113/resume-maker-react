@@ -79,12 +79,38 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // To be explicit for this synchronous case:
     return;
   }
+  else if (request.action === "jobDataScraped") {
+    console.log("Background (jobDataScraped): Handler entered with data:", request.data);
+    if (request.data) {
+      chrome.storage.local.set({ scrapedJobDetails: request.data }, () => {
+        if (chrome.runtime.lastError) {
+          console.error("Background (jobDataScraped): Error storing job details:", chrome.runtime.lastError.message);
+          sendResponse({ status: "error", message: "Failed to store job details: " + chrome.runtime.lastError.message });
+        } else {
+          console.log("Background (jobDataScraped): Job details stored successfully.");
+
+          // Open the extension's action popup.
+          chrome.action.openPopup();
+
+          sendResponse({ status: "success", message: "Job details stored and popup opened." });
+        }
+      });
+    } else {
+      console.error("Background (jobDataScraped): 'jobDataScraped' called without data.");
+      sendResponse({ status: "error", message: "No data provided to jobDataScraped." });
+    }
+    return true; // Indicates asynchronous sendResponse
+  }
   else if (request.action === "triggerGeneration") {
-    console.log("Background (triggerGeneration): Handler entered.");
+    console.log("Background (triggerGeneration): Handler entered. Custom text provided:", !!request.text);
     sendMessageToPopup({
       action: "statusUpdate",
-      message: "Processing: Getting selected text from page...",
+      message: "Processing: Getting text...",
     });
+
+    const textPromise = request.text
+      ? Promise.resolve({ text: request.text, textPreview: request.text.substring(0, 90) + '...' })
+      : getSelectedTextFromActiveTab();
 
     chrome.storage.local.get("authToken", (authResult) => {
       if (chrome.runtime.lastError) {
@@ -107,7 +133,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         console.log("Background (triggerGeneration): Auth token available for potential backend calls.");
       }
 
-      getSelectedTextFromActiveTab()
+      textPromise
         .then((selectionResult) => {
           if (selectionResult && selectionResult.text) {
             console.log("Background (triggerGeneration): Text retrieved:", selectionResult.textPreview);

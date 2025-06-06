@@ -52,21 +52,22 @@ var JobScraping = {
       return;
     }
 
-    // For now, just alert. Later, send to background.
-    alert(`Scraped:\nTitle: ${jobDetails.title}\nCompany: ${jobDetails.company}\nDescription: ${jobDetails.description.substring(0, 400)}...`);
-
-    // --- Future: Send scraped data to background script ---
-    // chrome.runtime.sendMessage({
-    //   action: "jobDataScraped",
-    //   data: jobDetails
-    // }, response => {
-    //   if (chrome.runtime.lastError) {
-    //     console.error("Error sending scraped job data:", chrome.runtime.lastError.message);
-    //   } else {
-    //     console.log("Scraped job data sent to background. Response:", response);
-    //     // Potentially open popup or trigger next step via background response
-    //   }
-    // });
+    // Send scraped data to the background script to be processed.
+    console.log("Content Script: Sending scraped data to background script.", jobDetails);
+    chrome.runtime.sendMessage({
+      action: "jobDataScraped",
+      data: jobDetails
+    }, response => {
+      if (chrome.runtime.lastError) {
+        console.error("Error sending scraped job data:", chrome.runtime.lastError.message);
+        // Optionally, inform the user that something went wrong.
+        alert("There was an error sending the job details to the extension. Please try again.");
+      } else {
+        console.log("Scraped job data sent to background. Response:", response);
+        // The background script will open a new tab, so nothing more to do here.
+        // You could potentially show a temporary "Sent!" message on the page.
+      }
+    });
   },
 
   /**
