@@ -102,45 +102,58 @@ var JobScraping = {
       return; // Avoid injecting multiple times
     }
 
-    console.log("Content Script (injectTailorButton): Attempting to inject button into/after:", injectionParentElement);
+    const self = this; // Preserve 'this' context for the callback
+    chrome.runtime.sendMessage({ action: "getAuthToken" }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error("JobScraper: Error checking auth status:", chrome.runtime.lastError.message);
+        // Do not inject the button if there's an error checking status
+        return;
+      }
+      
+      const isLoggedIn = response && response.token;
+      
+      console.log("Content Script (injectTailorButton): Attempting to inject button into/after:", injectionParentElement);
+      
+      const tailorButton = document.createElement('button');
+      tailorButton.id = 'resumeBuilderTailorBtn';
+      
+      // Basic styling - make this better with CSS or by matching site styles
+      tailorButton.style.marginLeft = '10px';
+      tailorButton.style.padding = '10px 15px'; // Slightly larger
+      tailorButton.style.backgroundColor = '#ffd700'; // Yellow
+      tailorButton.style.color = 'black';
+      tailorButton.style.border = 'none';
+      tailorButton.style.borderRadius = '1000px';
+      tailorButton.style.cursor = 'pointer';
+      tailorButton.style.fontSize = '16px'; // Try to match surrounding font size
+      tailorButton.style.fontWeight = '600'; // semi-bold
+      tailorButton.style.lineHeight = 'inherit';
+      
+      if (isLoggedIn) {
+        tailorButton.innerHTML = '🍌 Resume Banana'; // Logged-in text
+        tailorButton.addEventListener('click', self.handleTailorButtonClick.bind(self));
+      } else {
+        tailorButton.innerHTML = 'Login to Use Banana'; // Logged-out text
+        tailorButton.addEventListener('click', () => {
+          chrome.runtime.sendMessage({
+            action: "openLoginTab",
+            url: "http://localhost:3000/login"
+          });
+        });
+      }
 
-    const tailorButton = document.createElement('button');
-    tailorButton.id = 'resumeBuilderTailorBtn';
-    tailorButton.innerHTML = '🍌 Resume Banana'; // Updated text
-    // Basic styling - make this better with CSS or by matching site styles
-    tailorButton.style.marginLeft = '10px';
-    tailorButton.style.padding = '10px 15px'; // Slightly larger
-    tailorButton.style.backgroundColor = '#ffd700'; // Yellow
-    tailorButton.style.color = 'black';
-    tailorButton.style.border = 'none';
-    tailorButton.style.borderRadius = '1000px';
-    tailorButton.style.cursor = 'pointer';
-    tailorButton.style.fontSize = '16px'; // Try to match surrounding font size
-    tailorButton.style.fontWeight = '600'; // semi-bold
-    tailorButton.style.lineHeight = 'inherit';
-
-    tailorButton.addEventListener('click', this.handleTailorButtonClick);
-
-    // Attempt to inject: after the target element if it's a button, or append to a container
-    if (targetElement && injectionParentElement) {
-        if(targetElement.tagName === 'BUTTON' || (targetElement.getAttribute('role') === 'button')) {
-          targetElement.insertAdjacentElement('afterend', tailorButton);
-        } else {
-          // If targetElement is a container itself, append button inside
-          injectionParentElement.appendChild(tailorButton);
-        }
-    } else if (injectionParentElement) {
-      // Fallback if only parent was found
-      injectionParentElement.appendChild(tailorButton);
-    }
-
-
-    console.log("Content Script (injectTailorButton): ResumeBuilder button injected!");
+      // Append the fully configured button to the DOM
+      if (injectionParentElement) {
+        injectionParentElement.appendChild(tailorButton);
+        console.log("Content Script (injectTailorButton): Button injected successfully.");
+      }
+    });
   },
 
   /**
    * Main function to run on page load for the scraping feature.
    * It will try to inject the button if it determines it's a job posting page.
+   * It also sets up a listener to react to auth changes in real-time.
    */
   initialize: function() {
     // Using a slight delay and also checking for document readiness.
@@ -162,5 +175,49 @@ var JobScraping = {
         setTimeout(attemptInjection, 1500); // Adjust delay as needed
       }, { once: true });
     }
+
+    // --- Add listener for Authentication Changes ---
+    // This allows the button to update in real-time if the user logs in/out in another tab.
+    const self = this;
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      // We only care about changes to 'authToken' in local storage.
+      if (areaName !== 'local' || !changes.authToken) {
+        return;
+      }
+
+      const tailorButton = document.getElementById('resumeBuilderTailorBtn');
+      if (!tailorButton) {
+        // If the button doesn't exist on the page, don't do anything.
+        // This can happen if the user navigates away or the page is not a job page.
+        return;
+      }
+
+      console.log("Content Script (storage.onChanged): Auth token has changed. Updating button state.");
+      
+      const isLoggedIn = !!changes.authToken.newValue;
+
+      // The most reliable way to change the event listener is to replace the node.
+      // cloneNode(true) copies the node and all its attributes (like style and class) and children,
+      // but it does NOT copy event listeners.
+      const newButton = tailorButton.cloneNode(true);
+
+      if (isLoggedIn) {
+        newButton.innerHTML = '🍌 Resume Banana'; // Logged-in text
+        newButton.addEventListener('click', self.handleTailorButtonClick.bind(self));
+      } else {
+        newButton.innerHTML = 'Login to Use Banana'; // Logged-out text
+        newButton.addEventListener('click', () => {
+          chrome.runtime.sendMessage({
+            action: "openLoginTab",
+            url: "http://localhost:3000/login"
+          });
+        });
+      }
+
+      // Replace the old button with the newly configured one.
+      if (tailorButton.parentNode) {
+        tailorButton.parentNode.replaceChild(newButton, tailorButton);
+      }
+    });
   }
 }; 

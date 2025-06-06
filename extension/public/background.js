@@ -175,6 +175,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
     return true; // For the outer chrome.storage.local.get and subsequent async operations
   }
+  else if (request.action === "openLoginTab") {
+    chrome.tabs.create({ url: request.url || "http://localhost:3000/login" });
+    if (sendResponse) {
+      sendResponse({ status: "success", message: "Login tab opened."});
+    }
+    return; // No further async action, but indicates message was handled.
+  }
   else {
     console.log("Background: Unhandled message action:", request?.action);
     // No sendResponse() called for unhandled actions, so don't return true.

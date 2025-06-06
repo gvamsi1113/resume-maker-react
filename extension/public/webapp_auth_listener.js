@@ -16,7 +16,7 @@ function sendTokenToExtension(token) {
       if (chrome.runtime.lastError) {
         console.error("WebAppAuthListener: Error sending token to background script:", chrome.runtime.lastError.message);
       } else if (response && response.status === "success") {
-        console.log("WebAppAuthListener: Auth token successfully sent to background script.");
+        console.log("WebAppAuthListener: Auth token successfully sent to background script. Popup UI should now update if open.");
       } else {
         console.warn("WebAppAuthListener: Background script may not have received token properly, response:", response);
       }
@@ -54,10 +54,10 @@ window.addEventListener('myWebAppAuthSuccess', (event) => {
     const tokenFromEvent = event.detail?.token; // Get token directly from event
     if (tokenFromEvent) {
       console.log("WebAppAuthListener: Token found in event.detail from myWebAppAuthSuccess.");
-      sendTokenToExtension(tokenFromEvent, "event_myWebAppAuthSuccess_withToken"); // Pass it directly
+      sendTokenToExtension(tokenFromEvent);
     } else {
       console.warn("WebAppAuthListener: 'myWebAppAuthSuccess' event, but no token in event.detail. Fallback to localStorage check.");
-      checkForAndSendToken("event_myWebAppAuthSuccess_fallback");
+      checkForAndSendToken();
     }
 });
 

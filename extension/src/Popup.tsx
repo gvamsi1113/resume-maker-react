@@ -43,6 +43,7 @@ type BackgroundMessage =
   | ErrorMessage;
 
 const Popup: React.FC = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [statusMessage, setStatusMessage] = useState(
     "Idle. Select text on a page or use the scraper."
   );
@@ -176,6 +177,43 @@ const Popup: React.FC = () => {
       }
     });
   }, []); // Empty dependency array ensures this runs only once on mount
+
+  useEffect(() => {
+    // Check auth token on initial load
+    chrome.runtime.sendMessage({ action: "getAuthToken" }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error("Popup Auth: Error getting token on load:", chrome.runtime.lastError.message);
+        setIsLoggedIn(false);
+      } else if (response && response.token) {
+        setIsLoggedIn(true);
+        console.log("Popup Auth: Token found on load, user is logged in.");
+      } else {
+        setIsLoggedIn(false);
+        console.log("Popup Auth: No token found on load, user is logged out.");
+      }
+    });
+
+    // Listen for changes in storage (e.g., login/logout in another tab)
+    const storageChangeHandler = (changes: { [key: string]: chrome.storage.StorageChange }, areaName: string) => {
+      if (areaName === 'local' && changes.authToken) {
+        const hasToken = !!changes.authToken.newValue;
+        setIsLoggedIn(hasToken);
+        console.log(`Popup Auth: Storage changed. User is now ${hasToken ? 'logged in' : 'logged out'}.`);
+        if (hasToken) {
+          setStatusMessage("Logged in successfully. Ready to generate.");
+        } else {
+          setStatusMessage("Logged out. Please log in to continue.");
+          setIsError(true); // Visually indicate a requires-action state
+        }
+      }
+    };
+
+    chrome.storage.onChanged.addListener(storageChangeHandler);
+
+    return () => {
+      chrome.storage.onChanged.removeListener(storageChangeHandler);
+    };
+  }, []); // Runs once on component mount
 
   useEffect(() => {
     const messageListener = (message: BackgroundMessage) => {
@@ -412,12 +450,20 @@ const Popup: React.FC = () => {
       )}
 
       <div className="actions">
-        <button
-          onClick={handleGenerateClick}
-          disabled={isGenerating}
-        >
-          {isGenerating ? "Generating..." : "Generate"}
-        </button>
+        {isLoggedIn ? (
+          <button
+            onClick={handleGenerateClick}
+            disabled={isGenerating}
+          >
+            {isGenerating ? "Generating..." : "Generate"}
+          </button>
+        ) : (
+          <button
+            onClick={() => chrome.tabs.create({ url: 'http://localhost:3000/login' })}
+          >
+            Login to Banana Resume
+          </button>
+        )}
 
         {/* Raw Text Preview Section */}
         {textPreview && (
