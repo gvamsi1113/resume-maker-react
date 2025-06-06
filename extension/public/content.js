@@ -1,43 +1,19 @@
-// content.js - Injected into web pages to interact with the DOM.
+// extension/content.js (or your source location)
 
-/**
- * Retrieves the currently selected text from the page.
- * @returns {{text: string, textPreview: string}} An object containing the full selected text
- *                                                and a truncated preview.
- */
-function getSelectedText() {
-  const selectedText = window.getSelection().toString().trim();
-  if (selectedText) {
-    const truncatedText =
-      selectedText.length > 100
-        ? selectedText.substring(0, 100) + "..."
-        : selectedText;
-    console.log("Content Script: Detected text selection:", truncatedText);
-    return { text: selectedText, textPreview: truncatedText };
-  } else {
-    console.log("Content Script: No text selected.");
-    return { text: "", textPreview: "[No text selected]" };
-  }
-}
+console.log("Resume Tailor Content Script Loaded (v1.1.1 - includes job scraping features)");
 
-/**
- * Listens for messages from the background script.
- * Primarily handles the "getSelection" action to retrieve user-selected text.
- */
+// Initialize the job scraping feature after defining all functions
+JobScraping.initialize();
+
+// The original file had a commented out message listener section. 
+// That has been removed for clarity as it wasn't being used.
+// If a message listener is needed (e.g., for getSelectedText), it could be added here, like so:
+/*
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "getSelection") {
-    const selection = getSelectedText();
-    sendResponse({
-      status: "success", // Always success, as the action is to attempt to get text
-      text: selection.text,
-      textPreview: selection.textPreview,
-    });
+    // Assuming TextSelection module is loaded.
+    sendResponse(TextSelection.getSelectedText());
+    return true; // To indicate you wish to send a response asynchronously
   }
-  // Return true to indicate that the response will be sent asynchronously if sendResponse is called in a callback.
-  // In this case, sendResponse is called synchronously within the listener, but returning true is a good practice
-  // for message listeners that might become asynchronous later.
-  return true;
 });
-
-// Log to the console to confirm the content script has loaded successfully.
-console.log("Resume Tailor Content Script Loaded.");
+*/
